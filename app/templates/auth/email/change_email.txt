@@ -1,0 +1,11 @@
+亲爱的 {{ user.username }}
+
+为了确认您新的邮箱地址，请复制下面的链接到你的浏览器地址栏：
+
+{{ url_for('auth.change_email', token=token, _external=True) }}
+
+Sincerely,
+
+The Flasky Display Web App Team
+
+Note: replies to this email address are not monitored.

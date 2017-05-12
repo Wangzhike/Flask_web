@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Display Web App - 更改邮箱{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>请更改邮箱</h1>
+</div>
+<!-- col-md-* 栅格类可以创建一个基本的栅格系统，在手机和平板设备上一开始是堆叠在一起的(超小屏幕到小屏幕这个范围)，-->
+<!-- 在桌面(中等)屏幕设备上变为水平。 col-md-4 类创建了一个占4列的列 -->
+<div class="col-md-4">
+    {{ wtf.quick_form(form) }}
+</div>
+{% endblock %}

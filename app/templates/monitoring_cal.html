@@ -1,0 +1,31 @@
+{% extends "monitoring_base.html" %}
+
+{% set active_sidebar_page = "monitoring_cal" %}
+
+{% block main_content %}
+<div class="table-responsive col-md-offset-2 col-md-6">
+    <table class="table table-bordered table-striped table-hover">
+        <caption>计算板资源概览</caption>
+        <tr>
+            <th>编号</th>
+            <th>DSP1</th>
+            <th>DSP2</th>
+            <th>FPGA-可用逻辑单元/个</th>
+        </tr>
+        {% for cb in calBoards %}
+            {% if cb.existing %}
+                <tr>
+                    <td>{{ cb.name }}</td>
+                    <td {% if cb.dsp1_isIdle() %}class="success"{% else %}class="danger"{% endif %}>
+                        {% if cb.dsp1_isIdle() %}空闲{% else %}工作{% endif %}
+                    </td>
+                    <td {% if cb.dsp2_isIdle() %}class="success"{% else %}class="danger"{% endif %}>
+                        {% if cb.dsp2_isIdle() %}空闲{% else %}工作{% endif %}
+                    </td>
+                    <td class="info">{{ cb.fpga_extra }}</td>
+                </tr>
+            {% endif %}
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

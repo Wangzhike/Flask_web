@@ -1,0 +1,13 @@
+亲爱的 {{ user.username }}
+
+欢迎来到 Display Web App!
+
+为了确认你的账户，请复制下面的链接到您的浏览器地址栏：
+
+{{ url_for('auth.confirm', token=token, _external=True) }}
+
+Sincerely,
+
+The Flasky Display Web App Team
+
+Note: replies to this email address are not monitored.
