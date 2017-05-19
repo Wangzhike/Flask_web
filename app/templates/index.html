@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% set active_page = 'index' %}
+{% block title %}Display Web App - 实时监控{% endblock title %}
+
+{% block page_header %}
+    实时监控
+{% endblock page_header %}
+
+{% block page_content %}
+    <div class="row charts">
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading"> 计算版资源概览 </div>
+                <div class="panel-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover table-striped">
+                            <tr>
+                            <th>编号</th>
+                            <th>DSP1</th>
+                            <th>DSP2</th>
+                            <th>FPGA-可用逻辑单元/个</th>
+                            </tr>
+                            {% for cb in calBoards %}
+                                {% if cb.existing %}
+                                    <tr>
+                                        <td>{{ cb.name }}</td>
+                                        <td {% if cb.dsp1_isIdle() %}class="success"{% else %}class="danger"{% endif %}>
+                                            {% if cb.dsp1_isIdle() %}空闲{% else %}工作{% endif %}
+                                        </td>
+                                        <td {% if cb.dsp2_isIdle() %}class="success"{% else %}class="danger"{% endif %}>
+                                            {% if cb.dsp2_isIdle() %}空闲{% else %}工作{% endif %}
+                                        </td>
+                                        <td class="info">{{ cb.fpga_extra }}</td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+    </div>
+    </div>
+{% endblock page_content %}

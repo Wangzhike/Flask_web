@@ -7,31 +7,30 @@ from socket_client import updateCalBoardModel
 
 
 @main.route('/')
-@main.route('/monitoring-cal')
-def monitoring_cal():
+def index():
     if not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
     else:
-        # flash(u'欢迎使用！')
+        flash(u'欢迎使用！')
         updateCalBoardModel()
         calBoards = CalBoard.query.order_by(CalBoard.name).all()
-        return render_template('monitoring_cal.html', calBoards=calBoards)
+        return render_template('index.html', calBoards=calBoards)
 
 
-@main.route('/monitoring-store')
-def monitoring_store():
-    if not current_user.is_authenticated:
-        return redirect(url_for('auth.login'))
-    else:
-        return render_template('monitoring_store.html')
-
-
-@main.route('/monitoring-control')
-def monitoring_control():
-    if not current_user.is_authenticated:
-        return redirect(url_for('auth.login'))
-    else:
-        return render_template('monitoring_control.html')
+# @main.route('/monitoring-store')
+# def monitoring_store():
+#     if not current_user.is_authenticated:
+#         return redirect(url_for('auth.login'))
+#     else:
+#         return render_template('monitoring_store.html')
+#
+#
+# @main.route('/monitoring-control')
+# def monitoring_control():
+#     if not current_user.is_authenticated:
+#         return redirect(url_for('auth.login'))
+#     else:
+#         return render_template('monitoring_control.html')
 
 
 @main.route('/deploy-task')
@@ -39,6 +38,7 @@ def deploy_task():
     if not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
     else:
+        flash(u'欢迎！')
         return render_template('deploy_task.html')
 
 

@@ -39,7 +39,7 @@ def before_request():
 @auth.route('/unconfirmed')
 def unconfirmed():
     if current_user.confirmed:
-        return redirect(url_for('main.monitoring_cal'))
+        return redirect(url_for('main.index'))
     else:
         return render_template('auth/unconfirmed.html')
 
@@ -51,7 +51,7 @@ def resend_confirmation():
     send_email(current_user.email, u'确认您的账户',
                'auth/email/confirm', user=current_user, token=token)
     flash(u'新的确认邮件已经发送到您的邮箱')
-    return redirect(url_for('main.monitoring_cal'))
+    return redirect(url_for('main.index'))
 
 
 @auth.route('/login', methods=['GET', 'POST'])
@@ -67,7 +67,7 @@ def login():
             login_user(user, form.remember_me.data)
             # 更新用户的登录时间
             user.last_login_time()
-            return redirect(request.args.get('next') or url_for('main.monitoring_cal'))
+            return redirect(request.args.get('next') or url_for('main.index'))
         flash(u'无效的用户名或密码')
     return render_template('auth/login.html', form=form)
 
@@ -106,7 +106,7 @@ def register():
 @login_required
 def confirm(token):
     if current_user.confirmed:
-        return redirect(url_for('main.monitoring_cal'))
+        return redirect(url_for('main.index'))
     if current_user.confirm(token):
         flash(u'您已经确认了您的账户，非常感谢！')
     else:
@@ -140,7 +140,7 @@ def password_reset(token):
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user is None:
-            return redirect(url_for('main.monitoring_cal'))
+            return redirect(url_for('main.index'))
         if user.reset_password(token, form.password.data):
             flash(u'您的密码已经重置！')
             return redirect(url_for('auth.login'))
@@ -158,7 +158,7 @@ def change_password():
             current_user.password = form.password.data
             db.session.add(current_user)
             flash(u'您的密码已经更新！')
-            return redirect(url_for('main.monitoring_cal'))
+            return redirect(url_for('main.index'))
         else:
             flash(u'原密码不正确')
     return render_template('auth/change_password.html', form=form)
@@ -176,7 +176,7 @@ def change_email_request():
                        'auth/email/change_email',
                        user=current_user, token=token)
             flash(u'确认您新邮箱的邮件已经发送到该新邮箱！')
-            return redirect(url_for('main.monitoring_cal'))
+            return redirect(url_for('main.index'))
         else:
             flash(u'密码不正确')
     return render_template('auth/change_email.html', form=form)
@@ -189,4 +189,4 @@ def change_email(token):
         flash(u'您的邮箱地址已经更改成功！')
     else:
         flash(u'无效的请求链接！')
-    return redirect(url_for('main.monitoring_cal'))
+    return redirect(url_for('main.index'))
