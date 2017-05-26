@@ -111,7 +111,7 @@ def confirm(token):
         flash(u'您已经确认了您的账户，非常感谢！')
     else:
         flash(u'确认链接无效或已过期')
-    return redirect(url_for('main.monitoring_cal'))
+    return redirect(url_for('main.index'))
 
 
 # 对于忘记密码无法登录的用户，提供重置密码功能。但安全起见，有必要使用类似于确认账户时用到的令牌。

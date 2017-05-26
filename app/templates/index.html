@@ -10,35 +10,325 @@
 {% block page_content %}
     <div class="row charts">
         <div class="col-md-6">
-            <div class="panel panel-default">
-                <div class="panel-heading"> 计算版资源概览 </div>
-                <div class="panel-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover table-striped">
-                            <tr>
-                            <th>编号</th>
-                            <th>DSP1</th>
-                            <th>DSP2</th>
-                            <th>FPGA-可用逻辑单元/个</th>
-                            </tr>
-                            {% for cb in calBoards %}
-                                {% if cb.existing %}
+            <div class="king-block king-block-bordered mb20">
+                <div class="king-block-header">
+                    <div class="king-block-title">
+                        计算版资源概览
+                    </div>
+                </div>
+                <div class="king-block-content">
+                    <div class="chart k-chart" data-role="chart" style="position: relative;">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover table-striped">
+                                <thead>
                                     <tr>
-                                        <td>{{ cb.name }}</td>
-                                        <td {% if cb.dsp1_isIdle() %}class="success"{% else %}class="danger"{% endif %}>
-                                            {% if cb.dsp1_isIdle() %}空闲{% else %}工作{% endif %}
-                                        </td>
-                                        <td {% if cb.dsp2_isIdle() %}class="success"{% else %}class="danger"{% endif %}>
-                                            {% if cb.dsp2_isIdle() %}空闲{% else %}工作{% endif %}
-                                        </td>
-                                        <td class="info">{{ cb.fpga_extra }}</td>
+                                    <th>编号</th>
+                                    <th>DSP1</th>
+                                    <th>DSP2</th>
+                                    <th>FPGA-可用逻辑单元/个</th>
                                     </tr>
-                                {% endif %}
-                            {% endfor %}
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {% for cb in calBoards %}
+                                        {% if cb.existing %}
+                                            <tr>
+                                                <td>{{ cb.name }}</td>
+                                                <td {% if cb.dsp1_isIdle() %}class="success"{% else %}class="danger"{% endif %}>
+                                                    {% if cb.dsp1_isIdle() %}空闲{% else %}工作{% endif %}
+                                                </td>
+                                                <td {% if cb.dsp2_isIdle() %}class="success"{% else %}class="danger"{% endif %}>
+                                                    {% if cb.dsp2_isIdle() %}空闲{% else %}工作{% endif %}
+                                                </td>
+                                                <td class="info">{{ cb.fpga_extra }}</td>
+                                            </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
+{#        <div class="col-md-6">#}
+{#            <div class="king-block king-block-bordered mb20">#}
+{#                <div class="king-block-header">#}
+{#                    <div class="king-block-title">#}
+{#                        存储版资源概览#}
+{#                    </div>#}
+{#                </div>#}
+{#                <div class="king-block-content">#}
+{#                    <div class="chart k-chart" data-role="chart" style="position: relative;">#}
+{#                        <div class="king-widget8" style="border: none;">#}
+{#                            <div class="pb10 widget-header">#}
+{#                                <span><strong>总容量</strong></span>#}
+{#                                <span class="text-muted">20T</span>#}
+{#                                <span class="fr">#}
+{#                                     <div class="widget-item col-md-6 col-xs-6">#}
+{#                                        <span class="widget-icon progress-bar-danger"> </span> 已用#}
+{#                                    </div>#}
+{#                                    <div class="widget-item col-md-6 col-xs-6">#}
+{#                                        <span class="widget-icon progress-bar-success"> </span> 未用#}
+{#                                    </div>#}
+{#                                </span>#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <div class="table-responsive">#}
+{#                            <table class="table table-bordered table-hover">#}
+{#                            <thead>#}
+{#                                <tr>#}
+{#                                    <th>编号</th>#}
+{#                                    <th>使用情况</th>#}
+{#                                </tr>#}
+{#                            </thead>#}
+{#                            <tbody>#}
+{#                                {% for sb in storeBoards %}#}
+{#                                    {% set used_percent = sb.used * 100 // sb.capacity %}#}
+{#                                    {% set left_percent = 100 - used_percent %}#}
+{#                                    <tr>#}
+{#                                        <td style="width: 10%;">{{ sb.name }}</td>#}
+{#                                        <td>#}
+{#                                            <div class="progress">#}
+{#                                                <div class="progress-bar progress-bar-danger" style="width: {{ used_percent }}%;">{{ used_percent }}%</div>#}
+{#                                                <div class="progress-bar progress-bar-success" style="width: {{ left_percent }}%;">{{ left_percent }}%</div>#}
+{#                                            </div>#}
+{#                                        </td>#}
+{#                                    </tr>#}
+{#                                {% endfor %}#}
+{#                            </tbody>#}
+{#                        </table>#}
+{#                        </div>#}
+{#                    </div>#}
+{#                </div>#}
+{#            </div>#}
+{#        </div>#}
+        <div class="col-md-6">
+            <div class="king-block king-block-bordered mb20">
+                <div class="king-block-header">
+                    <div class="king-block-tile">
+                        存储版资源概览
+                    </div>
+                </div>
+                <div class="king-block-content">
+                    <div id="chart-pie" class="chart k-chart" data-role="chart" style="position:relative;">
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+    <div class="row charts">
+        <div class="col-lg-12">
+            <div class="king-block king-block-bordered mb20">
+                <div class="king-block-header">
+                    <div class="king-block-title">
+                        主控板资源概览
+                    </div>
+                </div>
+                <div class="king-block-content">
+                    <div id="chart-area" class="chart k-chart" data-role="chart" style="position: relative;">
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 {% endblock page_content %}
+
+{% block scripts %}
+{{ super() }}
+    <script>
+    // <!-- 存储版饼状图 chart-pie
+    var center_x = 14;
+    var myChart = echarts.init(document.getElementById('chart-pie'))
+    var option = {
+        title: {
+            text: '存储版资源使用情况',
+            subtext: '总容量： 20T',
+            x: 'center',
+            padding: [20, 5, 10, 5]    //上 右 下 左
+        },
+        tooltip: {
+            trigger: 'item',
+            formatter: '{a} {b} :{d}%',
+            textStyle: {
+                fontSize: 14
+            }
+        },
+        legend: {
+            orient: 'vertical',
+            x: 'left',
+            data: ['已用', '未用'],
+            padding: [20, 5, 10, 5]    //上 右 下 左
+        },
+        toolbox: {
+            show: false
+        },
+        grid: [
+            {x: 'center', y: '25%', width: '96%', height: '50%'},
+        ],
+        xAxis: [
+            {
+                gridIndex: 0,
+                type: 'category',
+                axisTick: {
+                    alignWithLabel: true
+                },
+                data: [
+                    {
+                        value: 'sb1',
+                        textStyle: {
+                            fontWeight: 'bold',
+                            fontSize: 14
+                        }
+                    },
+                    {
+                        value: 'sb2',
+                        textStyle: {
+                            fontWeight: 'bold',
+                            fontSize: 14
+                        }
+                    },
+                    {
+                        value: 'sb3',
+                        textStyle: {
+                            fontWeight: 'bold',
+                            fontSize: 14
+                        }
+                    },
+                    {
+                        value: 'sb4',
+                        textStyle: {
+                            fontWeight: 'bold',
+                            fontSize: 14
+                        }
+                    }
+                ]
+            }
+        ],
+        yAxis: [
+            {
+                gridIndex: 0,
+                name: '编号',
+                show: false
+            },
+        ],
+        series: [
+            // 设置四个饼状图中第一个的圆心 x 的坐标值
+            {% for sb in storeBoards %}
+                {
+                    name: '',
+                    type: 'pie',
+                    radius: '24%',
+                    center: [ center_x + '%', '57%'],
+                    data: [
+                        {value: {{ (sb.used / 1024) | round(1) }}, name: '已用'},
+                        {value: {{ ((sb.left) / 1024) | round(1) }}, name: '未用'},
+                    ],
+                    label: {
+                        normal: {
+                            position: 'inner',
+                            formatter: '{c}T',
+                            textStyle: {
+                                color: '#ffffff',
+                                fontSize: 14
+                            }
+                        }
+                    },
+                    itemStyle: {
+                        emphasis: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                },
+                center_x += 24,
+            {% endfor %}
+        ],
+        color: ['#fa827d', '#51b8fe', '#59c5a7']
+    };
+    // 使用指定的配置项和数据显示图表
+    myChart.setOption(option);
+    window.onresize = function() {
+        myChart.resize();
+        //console.log('myChart is resizing...')
+    };
+    // 存储版饼状图 chart-pie -->
+    // <!-- 计算版区域图 chart-area
+    function createChart(conf){
+        $(conf.selector).kendoChart({
+            title: {
+                text: conf.title
+            },
+            //transitions: false,
+            legend: {
+                position: 'top'
+            },
+            theme: 'bootstrap',
+            seriesDefaults: {
+                type: conf.type,
+                style: 'smooth'
+            },
+            series: conf.data,
+            valueAxis: {
+                labels: {
+                    format: "{0}%"
+                },
+                line: {
+                    visible: false
+                },
+                //axisCrossingValue: -10
+            },
+            categoryAxis: {
+                majorGridLines: {
+                    visible: false
+                },
+                categories: conf.categories,
+                labels: {
+                    rotation: 'auto'
+                }
+            },
+            tooltip: {
+                visible: true,
+                format: "{0}%",
+                template: "#= series.name #: #= value #"
+            }
+        });
+        //重新绘制
+        $(window).on('resize', function () {
+            var chart = $(conf.selector).data('kendoChart');
+            chart.redraw();
+        });
+    };
+    $(document).ready(function(){
+        createChart({
+            selector: '#chart-area',    // 图表窗器
+            title: "主控板CPU资源占用",   // 图表标题
+            type: 'area',   // 图表类型
+            data: [
+                {% set ctrlbDatas = controlBoardsSplit[0] %}
+                {% for name, data in ctrlbDatas.items() %}
+                    {
+                        name: '{{ name }}',
+                        data: {{ data }}
+                    },
+                {% endfor %}
+                /*{
+                    name: 'India',
+                    data: [3.907, 7.943, 7.848, 9.284, 9.263, 9.801, 3.890, 8.238, 9.552, 6.855]
+                },
+                {
+                    name: "World",
+                    data: [1.988, 2.733, 3.994, 3.464, 4.001, 3.939, 1.333, -2.245, 4.339, 2.727]
+                },
+                {
+                    name: "Haiti",
+                    data: [-0.253, 0.362, -3.519, 1.799, 2.252, 3.343, 0.843, 2.877, -5.416, 5.590]
+                },*/
+            ],
+            categories: {{ controlBoardsSplit[1]|safe }}
+            //categories: [2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011]
+        });
+    });
+    // 计算版区域图 chart-area -->
+    </script>
+{% endblock scripts %}

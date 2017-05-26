@@ -222,6 +222,86 @@ class CalBoard(db.Model):
         self.existing = False
 
 
+class StoreBoard(db.Model):
+    __tablename__ = 'storeBoard'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, unique=True)
+    capacity = db.Column(db.Integer)
+    used = db.Column(db.Integer)
+    left = db.Column(db.Integer)
+
+    @staticmethod
+    def insert_storeBoards():
+        storeBoards = {
+            'sb1': (2048, 0),
+            'sb2': (2048, 1024),
+            'sb3': (2048, 1536),
+            'sb4': (2048, 512),
+        }
+        for sb in storeBoards:
+            storeBoard = StoreBoard.query.filter_by(name=sb).first()
+            if storeBoard is None:
+                storeBoard = StoreBoard(name=sb)
+            storeBoard.capacity, storeBoard.used = storeBoards[sb]
+            storeBoard.left = storeBoard.capacity - storeBoard.used
+            db.session.add(storeBoard)
+        db.session.commit()
+
+
+class ControlBoard(db.Model):
+    __tablename__ = 'controlBoard'
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow())
+    cpu_sys_percent = db.Column(db.Float)
+    cpu_user_percent = db.Column(db.Float)
+    cpu_idle_percent = db.Column(db.Float)
+
+    @staticmethod
+    def genControlData():
+        import psutil
+        import re
+        import time
+        # 利用 psutil 模块获得有 interval=1 指定的接下来1s内
+        # cpu 的详细使用率
+        cpu_percents = str(psutil.cpu_times_percent(interval=1))
+
+        #    print(cpu_percents)
+
+        # 使用正则匹配出 user system 以及 idle 对应的 cpu 占用率
+        m = re.match(r'.*(user=\d+\.?\d+).*(system=\d+\.?\d+).*(idle=\d+\.?\d+).*',
+                     cpu_percents)
+
+        # 利用一个字典保存 user system idle 对应的 cpu 占用率
+        dict = {}
+        for d in m.groups():
+            (k, v) = d.split('=')
+            dict[k] = float(v)
+
+        # 存入当前的系统时间戳
+        # dict['time'] = time.mktime(datetime.utcnow().timetuple())
+        # 存入当前的 UTC 时间
+        dict['time'] = datetime.utcnow()
+
+        return dict
+
+    @staticmethod
+    def insert_controlBoards(count=20):
+        for i in range(count):
+            dict = ControlBoard.genControlData()
+            crtlb = ControlBoard(cpu_user_percent=dict['user'],
+                         cpu_sys_percent=dict['system'],
+                         cpu_idle_percent=dict['idle'],
+                         timestamp=dict['time'])
+            db.session.add(crtlb)
+            try:
+                db.session.commit()
+            except Exception as err:
+                print('Add data to ControlBoard model occurs error: %s' % err)
+                db.session.rollback()
+
+
+
+
 # 最后，Flask-Login 要求程序实现一个回调函数，使用指定的标识符加载用户
 @login_manager.user_loader
 def load_user(user_id):
