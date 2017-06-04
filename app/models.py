@@ -61,6 +61,18 @@ class User(UserMixin, db.Model):
     last_logout = db.Column(db.DateTime, default=datetime.utcnow())
     avatar_hash = db.Column(db.String(32))
 
+    # tasks 属性代表了这个关系的面向对象视角。对于一个 User 类的实例，其 tasks 属性将返回
+    # 与角色相关联的任务组成的列表。第一个参数表明这个关系的另一端是哪个模型。
+    # backref 参数向 Task 模型中添加一个 user_task 属性，从而定义反向关系。
+    # 这一属性可替代 user_id 访问 Task 模型，此时获取的是模型对象，而不是外键的值
+    tasks = db.relationship('Task', backref='user_task', lazy='dynamic')
+
+    # tasks 属性代表了这个关系的面向对象视角。对于一个 User 类的实例，其 taskTemps 属性将返回
+    # 与角色相关联的任务组成的列表。第一个参数表明这个关系的另一端是哪个模型。
+    # backref 参数向 Task 模型中添加一个 user_taskTemp 属性，从而定义反向关系。
+    # 这一属性可替代 user_id 访问 Task 模型，此时获取的是模型对象，而不是外键的值
+    taskTemps = db.relationship('TaskTemp', backref='user_taskTemp', lazy='dynamic')
+
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
         if self.role is None:
@@ -300,6 +312,26 @@ class ControlBoard(db.Model):
                 db.session.rollback()
 
 
+class Task(db.Model):
+    __tablename__ = 'tasks'
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String)
+    attr = db.Column(db.String)
+    data_file_name = db.Column(db.String)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow())
+    # user_id 这个外键建立起 Task 模型与 User 模型之间多对一的关系
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+
+class TaskTemp(db.Model):
+    __tablename__ = 'taskTemps'
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String)
+    attr = db.Column(db.String)
+    data_file_name = db.Column(db.String)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow())
+    # user_id 这个外键建立起 Task 模型与 User 模型之间多对一的关系
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
 
 # 最后，Flask-Login 要求程序实现一个回调函数，使用指定的标识符加载用户

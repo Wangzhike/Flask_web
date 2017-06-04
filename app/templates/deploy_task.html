@@ -1,14 +1,205 @@
 {% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
 
 {% set active_page = 'deploy_task' %}
 {% block title %}Display Web App - 任务部署{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <!-- bootstrap fileinput 插件样式表 -->
+    <link href="{{ url_for('static', filename='fileinput/fileinput.min.css') }}" rel="stylesheet" type="text/css">
+    <link href="{{ url_for('static', filename='fileinput/img/loading.gif') }}" rel="icon">
+{% endblock head %}
 
 {% block page_header %}
     任务部署
 {% endblock page_header %}
 
 {% block page_content %}
-<div class="row page-header">
-    <p>Hello, this is a simple project to display.</p>
+<div class="row">
+    <div class="col-md-5">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <div class="panel-title">
+                    添加任务到任务池
+                </div>
+            </div>
+            <div class="panel-body">
+                <!-- <form id="addTaskForm" class="form" method="post" enctype="multipart/form-data" role="form"> -->
+                    {{ addTaskForm.hidden_tag() }}
+                    {{ wtf.form_field(addTaskForm.taskType, id="taskType") }}
+                    {{ wtf.form_field(addTaskForm.taskAttr, id="taskAttr") }}
+{#                    {{ wtf.form_field(addTaskForm.taskData, class='form-control') }}#}
+                    <div class="form-group">
+                        <label class="control-label" for="taskData-input">{{ addTaskForm.taskData.label }}</label>
+                        <input id="taskData" type="file" class="file-loading"
+                               name="taskData" data-show-browser="false">
+                    </div>
+{#                    {{ wtf.form_field(addTaskForm.addTask, class="btn btn-primary", id="addTask")}}#}
+                    <button class="btn btn-primary" id="addTask" type="addTask">添加任务</button>
+                <!-- </form> -->
+            </div>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <div class="panel-title">
+                    任务池
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table id="task-pool" class="table table-bordered table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th>任务名称</th>
+                                <th>策略</th>
+                                <th>数据文件URL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 1px;'">
+                    <button class="btn btn-primary" id="submitTask" type="addTask">任务提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-{% endblock %}
+{% endblock page_content %}
+
+{% block scripts %}
+{{ super() }}
+    <!-- bootstrap fileinput 插件 js 配置代码 -->
+    <script>
+        $(document).ready(function () {
+            var taskName = null;
+            var taskAttr = null;
+            var taskDataURL = null;
+            $('#taskData').fileinput({
+                uploadUrl: $SCRIPT_ROOT + '/addTask_deal',   //设置处理上传的 url 地址
+                uploadAsync: true,      //同步上传
+                uploadExtraData: {      //上传额外数据
+                    'taskType': $('#taskType').val(),
+                    'taskAttr': $('#taskAttr').val()
+                },
+                language: 'zh',
+                browseClass: "btn btn-success",
+                browseLabel: "Pick Data",
+                browseIcon: "<i class=\"glyphicon glyphicon-folder-open\"></i> ",
+                removeClass: "btn btn-danger",
+                removeLabel: "Delete",
+                removeIcon: "<i class=\"glyphicon glyphicon-trash\"></i> ",
+                uploadClass: "btn btn-info",
+                uploadLabel: "Upload",
+                uploadIcon: "<i class=\"glyphicon glyphicon-upload\"></i> ",
+                showPreview: true,
+                dropZoneEnabled: false,
+                overwriteInitial: false,
+                showUpload: false,            //隐藏上传按钮
+                fileActionSettings: {         //文件预览部分设置
+                    showUpload: false,        //不显示上传按钮
+                },
+                minFileCount: 0,    //最小上传文件数： 0
+                maxFileCount: 1,       //最大的文件上传数量
+                //allowedFileTypes: ["text", "object", "images"],   //上传文件类型
+                allowedFileExtensions: ['txt',
+                                        'json', 'xml', 'xls', 'xlsx',
+                                        'jpg', 'gif', 'png'],            //上传文件的扩展名
+                maxFilePreviewSize: 16 * 1024,        //最大文件大小16*1024KB(16M)，如果不设置，默认大小25M
+                showAjaxErrorDetails: false    /* 注意！！！ 目前页面有个很大的bug，当显示 Ajax 的错误信息时，
+                                               页面排版会完全乱掉，目前没有时间研究这个原因，并且这些错误信息
+                                               对于用户来说并不需要，所以可以不用显示，至于这个 bug 留待以后解决 */
+            });
+            $(function () {
+                $('#addTask').bind('click', function () {
+                    $('#taskData').fileinput('upload');
+                    // 文件加载后动态改变任务池内容
+                });
+            });
+            /* fileinput 插件允许你处理 ajax 上传，即使没有选择文件，但是有效的 uploadedExtraData 也会得到 ajax 响应。
+               这些事件 filebatchpreupload filebatchloadsuccess filebatchloadcomplete 或 filebatchuploaderror
+               将在这种情况下触发。即使没有任何额外的数据，它将允许发送额外的数据。
+               对于 filebatchuploadsuccess 仅在 ajax 上传且文件批量上传成功之后触发，通过判断 files 数组长度是否为0，
+               可以判断本次上传是否包含数据文件。如果 files.length == 0，表明此次上传只有额外数据没有数据文件。否则 fileuploaded
+               将被触发。
+               对于 fileuploaded 仅在 ajax 上传且上载每个缩略图文件之后触发。此时一定包含了数据文件。
+             */
+            $('#taskData').on('filebatchuploadsuccess', function (event, data, previewId, index) {
+                var form = data.form, files = data.files, extra = data.extra, reader = data.reader;
+                var response = data.response;
+                console.log('File batch upload success triggered.');
+                if (files.length === 0)
+                    if (response['status'] === 0) {
+                        var response = data.response;
+                        var tablebody = '';
+                        tasks = response['tasks']
+                        for (var task of tasks) {
+                            tablebody += '<tr>';
+                            taskName = task['taskName'];
+                            tablebody += '<td>' + taskName + '</td>';
+                            taskAttr = task['taskAttr'];
+                            tablebody += '<td>' + taskAttr + '</td>';
+                            taskDataURL = task['taskDataURL'];
+                            tablebody += '<td>' + taskDataURL + '</td>';
+                            tablebody += '</tr>'
+                            console.log('taskName: ' + taskName);
+                            console.log('taskAttr: ' + taskAttr);
+                            console.log( 'taskDataURL: ' + taskDataURL);
+                        }
+                        $('#task-pool tbody')[0].innerHTML = tablebody;
+                        console.log(tablebody);
+                    } else {
+                        console.log('表单数据上传失败!');
+                    }
+            });
+            $('#taskData').on('fileuploaded', function (event, data, previewId, index) {
+                var form = data.form, files = data.files, extra = data.extra, reader = data.reader;
+                var response = data.response;
+                console.log('File uploaded triggered.');
+                if (response['status'] === 0) {
+                    tasks = response['tasks']
+                    var tablebody = '';
+                    for (var task of tasks) {
+                        tablebody += '<tr>';
+                        taskName = task['taskName'];
+                        tablebody += '<td>' + taskName + '</td>';
+                        taskAttr = task['taskAttr'];
+                        tablebody += '<td>' + taskAttr + '</td>';
+                        taskDataURL = task['taskDataURL'];
+                        tablebody += '<td>' + taskDataURL + '</td>';
+                        tablebody += '</tr>'
+                        console.log('taskName: ' + taskName);
+                        console.log('taskAttr: ' + taskAttr);
+                        console.log( 'taskDataURL: ' + taskDataURL);
+                    }
+                    console.log(tablebody)
+                    $('#task-pool tbody')[0].innerHTML = tablebody;
+                } else {
+                    console.log('表单数据上传失败!');
+                }
+            });
+            $(function () {
+                $('#submitTask').bind('click', function () {
+                    $.ajax({
+                        url: $SCRIPT_ROOT + '/submitTask_deal',
+                        data: '',
+                        type: 'POST',
+                        dateType: 'json',
+                    }).done(function (data) {
+                        if(data.status === 0) {
+                            $('#task-pool tbody')[0].innerHTML = '';
+                        } else {
+                            alert('提交任务失败!');
+                        }
+                    })
+                });
+            });
+        });
+
+    </script>
+{% endblock scripts %}

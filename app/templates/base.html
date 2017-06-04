@@ -8,10 +8,10 @@
     <link href="{{ url_for('static', filename='favicon.ico') }}" rel="shortcut icon" type="image/x-icon">
     <link href="{{ url_for('static', filename='favicon.ico') }}" rel="icon" type="image/x-icon">
     <!-- 蓝鲸提供的公用样式库，包括公用的元素样式和组件样式，像基本按钮、表格、表单、导航 -->
-    <link href="https://o.qcloud.com/static_api/v3/bk/css/bk.css?v=1.0.1" rel="stylesheet">
+    <!-- <link href="https://o.qcloud.com/static_api/v3/bk/css/bk.css?v=1.0.1" rel="stylesheet"> -->
     <!-- Kendo UI 图标需要的样式文件 -->
-    <link rel="stylesheet" href="https://o.qcloud.com/static_api/v3/assets/kendoui-2015.2.624/styles/kendo.common.min.css" />
-    <link rel="stylesheet" href="https://o.qcloud.com/static_api/v3/assets/kendoui-2015.2.624/styles/kendo.default.min.css" />
+    <!-- <link rel="stylesheet" href="https://o.qcloud.com/static_api/v3/assets/kendoui-2015.2.624/styles/kendo.common.min.css" />
+    <link rel="stylesheet" href="https://o.qcloud.com/static_api/v3/assets/kendoui-2015.2.624/styles/kendo.default.min.css" /> -->
     <!-- 当前样式 -->
     <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet" type="text/css">
     <link href="{{ url_for('static', filename='sb-admin.css') }}" rel="stylesheet" type="text/css">
@@ -22,7 +22,7 @@
     <script src="https://o.qcloud.com/static_api/v3/assets/js/respond.min.js"></script>
     <![endif]-->
     <!-- 引入 Echarts 文件 -->
-    <script src="{{ url_for('static', filename='echarts.min.js') }}"></script>
+    <!-- <script src="{{ url_for('static', filename='echarts.min.js') }}"></script> -->
 {% endblock head %}
 
 {% block body %}
@@ -124,6 +124,13 @@
         {{ super() }}
         <!-- 包括所有kendoui的js插件或者可以根据需要使用的js插件调用　-->
         <script src="https://o.qcloud.com/static_api/v3/assets/kendoui-2015.2.624/js/kendo.all.min.js"></script>
+         <!-- bootstrap fileinput 插件 js 文件 -->
+        <script src="{{ url_for('static', filename='fileinput/fileinput.min.js') }}"></script>
+        <!-- bootstrap fileinput 插件 js 中文文件 -->
+        <script src="{{ url_for('static', filename='fileinput/zh.js') }}"></script>
         {{ moment.include_moment() }}
+        <script>
+            var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+        </script>
     {% endblock %}
 {% endblock body %}

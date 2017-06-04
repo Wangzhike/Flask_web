@@ -29,6 +29,13 @@ class Config(object):
     MAINBOARD_IP = '127.0.0.1'  # '10.170.42.243'
     # 主控板 端口
     MAINBOARD_PORT = 9999  # 3333
+    # 任务数据文件的存储地址
+    UPLOADED_TASKDATAS_DEST = os.path.join(os.getcwd(), 'taskDatas')
+    # 任务数据文件的扩展名
+    ALLOWED_TASKDATAS_EXTENSIONS = set(['txt', 'json', 'xml', 'xls', 'xlsx',
+                                        'jpg', 'gif', 'png'])
+    # 任务数据文件的大小最大值
+    MAX_TASKDATAS_LENGTH = 16 * 1024 * 1024     # 16MB
 
     @staticmethod
     def init_app(app):

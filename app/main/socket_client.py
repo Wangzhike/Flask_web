@@ -93,7 +93,7 @@ def parseControlBoardData(data):
                 controlBoards[i].timestamp = datetime.fromtimestamp(float(time))
                 db.session.add(controlBoards[i])
             except Exception as err:
-                print('parseControlBoardData occurs error: %s', err)
+                print('parseControlBoardData occurs error: %s' % err)
             finally:
                 db.session.commit()
         else:
