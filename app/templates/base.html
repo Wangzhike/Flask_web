@@ -10,19 +10,14 @@
     <!-- 蓝鲸提供的公用样式库，包括公用的元素样式和组件样式，像基本按钮、表格、表单、导航 -->
     <!-- <link href="https://o.qcloud.com/static_api/v3/bk/css/bk.css?v=1.0.1" rel="stylesheet"> -->
     <!-- Kendo UI 图标需要的样式文件 -->
-    <!-- <link rel="stylesheet" href="https://o.qcloud.com/static_api/v3/assets/kendoui-2015.2.624/styles/kendo.common.min.css" />
-    <link rel="stylesheet" href="https://o.qcloud.com/static_api/v3/assets/kendoui-2015.2.624/styles/kendo.default.min.css" /> -->
+    <link rel="stylesheet" href="https://o.qcloud.com/static_api/v3/assets/kendoui-2015.2.624/styles/kendo.common.min.css" />
+    <link rel="stylesheet" href="https://o.qcloud.com/static_api/v3/assets/kendoui-2015.2.624/styles/kendo.default.min.css" />
     <!-- 当前样式 -->
     <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet" type="text/css">
     <link href="{{ url_for('static', filename='sb-admin.css') }}" rel="stylesheet" type="text/css">
     <link href="{{ url_for('static', filename='sb-bk-theme.css') }}" rel="stylesheet" type="text/css">
-    <!-- 以下两个插件用于在IE8以及以下版本浏览器支持HTML5元素和媒体查询，如果不需要用可以移除 -->
-    <!--[if lt IE 9]>
-    <script src="https://o.qcloud.com/static_api/v3/assets/js/html5shiv.min.js"></script>
-    <script src="https://o.qcloud.com/static_api/v3/assets/js/respond.min.js"></script>
-    <![endif]-->
-    <!-- 引入 Echarts 文件 -->
-    <!-- <script src="{{ url_for('static', filename='echarts.min.js') }}"></script> -->
+    <!-- bootstrap fileinput 插件样式表 -->
+    <link href="{{ url_for('static', filename='fileinput/fileinput.min.css') }}" rel="stylesheet" type="text/css">
 {% endblock head %}
 
 {% block body %}
@@ -128,6 +123,13 @@
         <script src="{{ url_for('static', filename='fileinput/fileinput.min.js') }}"></script>
         <!-- bootstrap fileinput 插件 js 中文文件 -->
         <script src="{{ url_for('static', filename='fileinput/zh.js') }}"></script>
+        <!-- 引入 Echarts 文件 -->
+        <script src="{{ url_for('static', filename='echarts.min.js') }}"></script>
+        <!-- 以下两个插件用于在IE8以及以下版本浏览器支持HTML5元素和媒体查询，如果不需要用可以移除 -->
+        <!--[if lt IE 9]>
+        <script src="https://o.qcloud.com/static_api/v3/assets/js/html5shiv.min.js"></script>
+        <script src="https://o.qcloud.com/static_api/v3/assets/js/respond.min.js"></script>
+        <![endif]-->
         {{ moment.include_moment() }}
         <script>
             var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};

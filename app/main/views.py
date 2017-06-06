@@ -9,11 +9,12 @@ from ..models import CalBoard, StoreBoard, ControlBoard, Task, TaskTemp
 from socket_client import updateModel
 from socket_client import parseCalBoardData, parseStoreBoardData,\
                         parseControlBoardData
-from forms import AddtaskForm
+from forms import AddtaskForm, SubmitTaskForm
 import os
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import json
+from collections import OrderedDict
 
 
 def parseControlBoards(controlBoards):
@@ -29,11 +30,181 @@ def parseControlBoards(controlBoards):
         ctrlbDatas['cpu_system'].append(ctrlb.cpu_sys_percent)
         ctrlbDatas['cpu_idle'].append(ctrlb.cpu_idle_percent)
         # categories.append(ctrlb.timestamp.strftime('%Y-%m-%d %H:%M:%S'))
-        categories.append(ctrlb.timestamp.strftime('%H:%M'))
+        categories.append(ctrlb.timestamp.strftime('%H:%M:%S'))
     controlBoardsSplit.append(ctrlbDatas)
     controlBoardsSplit.append(categories)
     print(categories)
     return controlBoardsSplit
+
+
+# 执行对于主控板数据刷新的 Ajax 请求
+@main.route('/controlBoard_deal_2', methods=['GET'])
+def controlBoard_deal_2():
+    # 首先与主控板通信更新 ControlBoard 模型中数据
+    updateModel(parseControlBoardData)
+    # 查询数据库获取当前的主控板数据
+    controlBoards = ControlBoard.query.order_by(ControlBoard.timestamp).all()
+    # 解析主控板数据并生成对应的 json 格式
+    ctrlbDatas = {
+        'datas': [
+            {
+                'name': 'cpu_user',
+                'data': []
+            },
+            {
+                'name': 'cpu_system',
+                'data': []
+            },
+            {
+                'name': 'cpu_idle',
+                'data': []
+            }
+        ],
+        'categories': []
+    }
+    for ctrlb in controlBoards:
+        ctrlbDatas['datas'][0]['data'].append(ctrlb.cpu_user_percent)
+        ctrlbDatas['datas'][1]['data'].append(ctrlb.cpu_sys_percent)
+        ctrlbDatas['datas'][2]['data'].append(ctrlb.cpu_idle_percent)
+        # 按 '09:32:35' 格式格式化时间戳
+        ctrlbDatas['categories'].append(ctrlb.timestamp.strftime('%H:%M:%S'))
+    return jsonify(ctrlbDatas)
+
+
+# 执行对于主控板数据刷新的 Ajax 请求
+@main.route('/storeBoard_deal', methods=['GET'])
+def storeBoard_deal():
+    # 首先与主控板通信更新 StoreBoard 模型中的数据
+    updateModel(parseStoreBoardData)
+    # 查询数据库获取当前的存储版数据
+    storeBoards = StoreBoard.query.order_by(StoreBoard.name).all()
+    # 解析存储版数据并生成对应的 json 格式
+    strbDatas = []
+    center_X = 14
+    for strb in storeBoards:
+        strbData = {
+            'name': '',
+            'type': 'pie',
+            'radius': '24%',
+            'center': [str(center_X) + '%', '57%'],
+            'data': [
+                {'value': round(strb.used / 1024.0, 1), 'name': '已用'},
+                {'value': round(strb.left / 1024.0, 1), 'name': '未用'},
+            ],
+            'label': {
+                'normal': {
+                    'position': 'inner',
+                    'formatter': '{c}T',
+                    'textStyle': {
+                        'color': '#ffffff',
+                        'fontSize': 14
+                    }
+                }
+            },
+            'itemStyle': {
+                'emphasis': {
+                    'shadowBlur': 10,
+                    'shadowOffsetX': 0,
+                    'shadowColor': 'rgba(0, 0, 0, 0.5)'
+                }
+            },
+        }
+        strbDatas.append(strbData)
+        center_X += 24
+    return jsonify(strbDatas)
+
+
+# 执行对于主控板数据刷新的 Ajax 请求
+@main.route('/controlBoard_deal_1', methods=['GET'])
+def controlBoard_deal_1():
+    # 首先与主控板通信更新 ControlBoard 模型中数据
+    updateModel(parseControlBoardData)
+    # 查询数据库获取当前的主控板数据
+    controlBoards = ControlBoard.query.order_by(ControlBoard.timestamp).all()
+    # 解析主控板数据并生成对应的 json 格式
+    ctrlbDatas = {
+        'series': [
+            {
+                'name': 'cpu_user',
+                'type': 'line',
+                'stack': '总量',
+                'areaStyle': '{normal: {}}',
+                'data': []
+            },
+            {
+                'name': 'cpu_system',
+                'type': 'line',
+                'stack': '总量',
+                'areaStyle': '{normal: {}}',
+                'data': []
+            },
+            {
+                'name': 'cpu_idle',
+                'type': 'line',
+                'stack': '总量',
+                'areaStyle': '{normal: {}}',
+                'data': []
+            }
+        ],
+        'categories': []
+    }
+    for ctrlb in controlBoards:
+        ctrlbDatas['series'][0]['data'].append(ctrlb.cpu_user_percent)
+        ctrlbDatas['series'][1]['data'].append(ctrlb.cpu_sys_percent)
+        ctrlbDatas['series'][2]['data'].append(ctrlb.cpu_idle_percent)
+        # 按 '09:32:35' 格式格式化时间戳
+        ctrlbDatas['categories'].append(ctrlb.timestamp.strftime('%H:%M:%S'))
+    return jsonify(ctrlbDatas)
+
+
+# 执行对于主控板数据刷新的 Ajax 请求
+@main.route('/controlBoard_deal_1_1', methods=['GET'])
+def controlBoard_deal_1_1():
+    # 首先与主控板通信更新 ControlBoard 模型中数据
+    updateModel(parseControlBoardData)
+    # 查询数据库获取当前的主控板数据
+    # 按照时间戳升序方式将控制板数据排序，也就是说最后一位数据时间最新
+    controlBoards = ControlBoard.query.order_by(ControlBoard.timestamp)[-1]
+    # 解析主控板数据并生成对应的 json 格式
+    ctrlbDatas = {
+        'series': [
+            {
+                'name': 'cpu_user',
+                'type': 'line',
+                'stack': '总量',
+                'areaStyle': '{normal: {}}',
+                'data': []
+            },
+            {
+                'name': 'cpu_system',
+                'type': 'line',
+                'stack': '总量',
+                'areaStyle': '{normal: {}}',
+                'data': []
+            },
+            {
+                'name': 'cpu_idle',
+                'type': 'line',
+                'stack': '总量',
+                'areaStyle': '{normal: {}}',
+                'data': []
+            }
+        ],
+        'categories': []
+    }
+    # 这里就只有一个数据了
+    # for ctrlb in controlBoards:
+    #     ctrlbDatas['series'][0]['data'].append(ctrlb.cpu_user_percent)
+    #     ctrlbDatas['series'][1]['data'].append(ctrlb.cpu_sys_percent)
+    #     ctrlbDatas['series'][2]['data'].append(ctrlb.cpu_idle_percent)
+    #     # 按 '09:32:35' 格式格式化时间戳
+    #     ctrlbDatas['categories'].append(ctrlb.timestamp.strftime('%H:%M:%S'))
+    ctrlbDatas['series'][0]['data'].append(controlBoards.cpu_user_percent)
+    ctrlbDatas['series'][1]['data'].append(controlBoards.cpu_sys_percent)
+    ctrlbDatas['series'][2]['data'].append(controlBoards.cpu_idle_percent)
+    # 按 '09:32:35' 格式格式化时间戳
+    ctrlbDatas['categories'].append(controlBoards.timestamp.strftime('%H:%M:%S'))
+    return jsonify(ctrlbDatas)
 
 
 @main.route('/')
@@ -61,9 +232,38 @@ def deploy_task():
     if not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
     else:
-        flash(u'欢迎！')
+        # flash(u'欢迎！')
         addTaskForm = AddtaskForm()
-        return render_template('deploy_task.html', addTaskForm=addTaskForm)
+        submitTaskForm = SubmitTaskForm()
+        if submitTaskForm.validate_on_submit():
+            print(u'收到了提交的任务表单!')
+            # print(submitTaskForm.flag.render_kw.get('value'))
+            # print(request.form)
+            if request.form.get('flag') == '1':
+                print(u'表单验证通过!')
+                # 用户点击任务提交按钮后，需要将 TaskTemp 模型中的数据转移到 Task 模型中，
+                # 删除 TaskTemp 中的数据
+                # 从 TaskTemp 模型取出该用户的所有任务数据
+                taskTemps = TaskTemp.query.filter_by(user_taskTemp=current_user).all()
+                for ttmp in taskTemps:
+                    task = Task(type=ttmp.type,
+                                attr=ttmp.attr,
+                                data_file_name=ttmp.data_file_name,
+                                user_task=ttmp.user_taskTemp,
+                                timestamp=ttmp.timestamp)
+                    try:
+                        db.session.add(task)
+                        db.session.delete(ttmp)
+                        db.session.commit()
+                    except Exception as err:
+                        print('move TaskTemp datas to Task occurs error: %s' % err)
+                        db.session.rollback()
+                        flash(u'任务提交失败!')
+                flash(u'任务提交成功!')
+                return redirect(url_for('main.deploy_task'))
+        return render_template('deploy_task.html',
+                               addTaskForm=addTaskForm,
+                               submitTaskForm=submitTaskForm)
 
 
 # 生成上传的数据文件的 url
@@ -156,38 +356,6 @@ def addTask_deal():
         print('KeyError: %s' % keyerr)
         fileinput_response['status'] = -1
         return jsonify(fileinput_response)
-
-    #     taskData = request.files.get('taskData')
-    #     # 如果数据文件非空而且文件扩展名合法
-    #     if taskData and allowed_file(taskData.filename):
-    #         print('taskData: %s' % taskData.filename)
-    #         taskData_file_naem = taskData.filename
-    #         taskData.save(os.path.join(app.config['UPLOADED_TASKDATAS_DEST'],
-    #                                    deal_filename(taskData_file_naem)))
-    #         # 为文件生成 url 地址
-    #         taskData_file_url = url_for('main.uploads_taskdatas', filename=taskData_file_naem)
-    #         print(taskData_file_url)
-    #     taskType = request.form.get('taskType')
-    #     if taskType is not None:
-    #         print('taskType: %s' % taskType)
-    #         # 任务名称
-    #         taskName = taskType + '_' + current_user.username + '_' +\
-    #                    datetime.utcnow().strftime('%Y_%m_%d_%H_%M_%S')
-    #         print(taskName)
-    #     taskAttr = request.form.get('taskAttr')
-    #     if taskAttr is not None:
-    #         print('taskAttr: %s' % taskAttr)
-    #     # taskOther = request.files['other']
-    # except KeyError as keyerr:
-    #     print('KeyError: %s' % keyerr)
-    #     return jsonify({'status': '-1'})
-    # else:
-    #     return jsonify({
-    #                 'status': '0',
-    #                 'taskName': taskName,
-    #                 'taskAttr': str(taskAttr),
-    #                 'taskDataURL': taskData_file_url
-    #     })
 
 
 @main.route('/submitTask_deal', methods=['POST'])

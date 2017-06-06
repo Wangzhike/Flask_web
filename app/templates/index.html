@@ -7,11 +7,6 @@
     {{ super() }}
     <!-- 蓝鲸提供的公用样式库，包括公用的元素样式和组件样式，像基本按钮、表格、表单、导航 -->
     <link href="https://o.qcloud.com/static_api/v3/bk/css/bk.css?v=1.0.1" rel="stylesheet">
-    <!-- Kendo UI 图标需要的样式文件 -->
-    <link rel="stylesheet" href="https://o.qcloud.com/static_api/v3/assets/kendoui-2015.2.624/styles/kendo.common.min.css" />
-    <link rel="stylesheet" href="https://o.qcloud.com/static_api/v3/assets/kendoui-2015.2.624/styles/kendo.default.min.css" />
-    <!-- 引入 Echarts 文件 -->
-    <script src="{{ url_for('static', filename='echarts.min.js') }}"></script>
 {% endblock head %}
 
 {% block page_header %}
@@ -121,7 +116,7 @@
                     </div>
                 </div>
                 <div class="king-block-content">
-                    <div id="chart-pie" class="chart k-chart" data-role="chart" style="position:relative;">
+                    <div id="strb-chart-pie" class="chart k-chart" data-role="chart" style="position:relative;">
                     </div>
                 </div>
             </div>
@@ -132,11 +127,26 @@
             <div class="king-block king-block-bordered mb20">
                 <div class="king-block-header">
                     <div class="king-block-title">
-                        主控板资源概览
+                        主控板资源概览-1
                     </div>
                 </div>
                 <div class="king-block-content">
-                    <div id="chart-area" class="chart k-chart" data-role="chart" style="position: relative;">
+                    <div id="ctrlb-chart-area-1" class="chart k-chart" data-role="chart" style="position: relative;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row charts">
+        <div class="col-lg-12">
+            <div class="king-block king-block-bordered mb20">
+                <div class="king-block-header">
+                    <div class="king-block-title">
+                        主控板资源概览-2
+                    </div>
+                </div>
+                <div class="king-block-content">
+                    <div id="ctrlb-chart-area-2" class="chart k-chart" data-role="chart" style="position: relative;">
                     </div>
                 </div>
             </div>
@@ -146,202 +156,417 @@
 
 {% block scripts %}
 {{ super() }}
-    <!-- 包括所有kendoui的js插件或者可以根据需要使用的js插件调用　-->
-    <script src="https://o.qcloud.com/static_api/v3/assets/kendoui-2015.2.624/js/kendo.all.min.js"></script>
     <script>
+    $(document).ready(function () {
     // <!-- 存储版饼状图 chart-pie
-    var center_x = 14;
-    var myChart = echarts.init(document.getElementById('chart-pie'))
-    var option = {
-        title: {
-            text: '存储版资源使用情况',
-            subtext: '总容量： 20T',
-            x: 'center',
-            padding: [20, 5, 10, 5]    //上 右 下 左
-        },
-        tooltip: {
-            trigger: 'item',
-            formatter: '{a} {b} :{d}%',
-            textStyle: {
-                fontSize: 14
-            }
-        },
-        legend: {
-            orient: 'vertical',
-            x: 'left',
-            data: ['已用', '未用'],
-            padding: [20, 5, 10, 5]    //上 右 下 左
-        },
-        toolbox: {
-            show: false
-        },
-        grid: [
-            {x: 'center', y: '25%', width: '96%', height: '50%'},
-        ],
-        xAxis: [
-            {
-                gridIndex: 0,
-                type: 'category',
-                axisTick: {
-                    alignWithLabel: true
-                },
-                data: [
-                    {
-                        value: 'sb1',
-                        textStyle: {
-                            fontWeight: 'bold',
-                            fontSize: 14
-                        }
-                    },
-                    {
-                        value: 'sb2',
-                        textStyle: {
-                            fontWeight: 'bold',
-                            fontSize: 14
-                        }
-                    },
-                    {
-                        value: 'sb3',
-                        textStyle: {
-                            fontWeight: 'bold',
-                            fontSize: 14
-                        }
-                    },
-                    {
-                        value: 'sb4',
-                        textStyle: {
-                            fontWeight: 'bold',
-                            fontSize: 14
-                        }
-                    }
-                ]
-            }
-        ],
-        yAxis: [
-            {
-                gridIndex: 0,
-                name: '编号',
+        var center_x = 14;
+         // 基于准备好的dom，初始化echarts实例
+        var strbChartPie = echarts.init($('#strb-chart-pie')[0]);
+        // 指定图表的配置项和数据
+        var option = {
+            title: {
+                text: '存储版资源使用情况',
+                subtext: '总容量： 20T',
+                x: 'center',
+                padding: [20, 5, 10, 5]    //上 右 下 左
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: '{a} {b} :{d}%',
+                textStyle: {
+                    fontSize: 14
+                }
+            },
+            legend: {
+                orient: 'vertical',
+                x: 'left',
+                data: ['已用', '未用'],
+                padding: [20, 5, 10, 5]    //上 右 下 左
+            },
+            toolbox: {
                 show: false
             },
-        ],
-        series: [
-            // 设置四个饼状图中第一个的圆心 x 的坐标值
-            {% for sb in storeBoards %}
+            grid: [
+                {x: 'center', y: '25%', width: '96%', height: '50%'},
+            ],
+            xAxis: [
                 {
-                    name: '',
-                    type: 'pie',
-                    radius: '24%',
-                    center: [ center_x + '%', '57%'],
+                    gridIndex: 0,
+                    type: 'category',
+                    axisTick: {
+                        alignWithLabel: true
+                    },
                     data: [
-                        {value: {{ (sb.used / 1024) | round(1) }}, name: '已用'},
-                        {value: {{ ((sb.left) / 1024) | round(1) }}, name: '未用'},
-                    ],
-                    label: {
-                        normal: {
-                            position: 'inner',
-                            formatter: '{c}T',
+                        {
+                            value: 'sb1',
                             textStyle: {
-                                color: '#ffffff',
+                                fontWeight: 'bold',
+                                fontSize: 14
+                            }
+                        },
+                        {
+                            value: 'sb2',
+                            textStyle: {
+                                fontWeight: 'bold',
+                                fontSize: 14
+                            }
+                        },
+                        {
+                            value: 'sb3',
+                            textStyle: {
+                                fontWeight: 'bold',
+                                fontSize: 14
+                            }
+                        },
+                        {
+                            value: 'sb4',
+                            textStyle: {
+                                fontWeight: 'bold',
                                 fontSize: 14
                             }
                         }
-                    },
-                    itemStyle: {
-                        emphasis: {
-                            shadowBlur: 10,
-                            shadowOffsetX: 0,
-                            shadowColor: 'rgba(0, 0, 0, 0.5)'
-                        }
-                    }
-                },
-                center_x += 24,
-            {% endfor %}
-        ],
-        color: ['#fa827d', '#51b8fe', '#59c5a7']
-    };
-    // 使用指定的配置项和数据显示图表
-    myChart.setOption(option);
-    window.onresize = function() {
-        myChart.resize();
-        //console.log('myChart is resizing...')
-    };
-    // 存储版饼状图 chart-pie -->
-    // <!-- 计算版区域图 chart-area
-    function createChart(conf){
-        $(conf.selector).kendoChart({
-            title: {
-                text: conf.title
-            },
-            //transitions: false,
-            legend: {
-                position: 'top'
-            },
-            theme: 'bootstrap',
-            seriesDefaults: {
-                type: conf.type,
-                style: 'smooth'
-            },
-            series: conf.data,
-            valueAxis: {
-                labels: {
-                    format: "{0}%"
-                },
-                line: {
-                    visible: false
-                },
-                //axisCrossingValue: -10
-            },
-            categoryAxis: {
-                majorGridLines: {
-                    visible: false
-                },
-                categories: conf.categories,
-                labels: {
-                    rotation: 'auto'
+                    ]
                 }
+            ],
+            yAxis: [
+                {
+                    gridIndex: 0,
+                    name: '编号',
+                    show: false
+                },
+            ],
+            series: [
+                // 设置四个饼状图中第一个的圆心 x 的坐标值
+                {% for sb in storeBoards %}
+                    {
+                        name: '',
+                        type: 'pie',
+                        radius: '24%',
+                        center: [ center_x + '%', '57%'],
+                        data: [
+                            {value: {{ (sb.used / 1024) | round(1) }}, name: '已用'},
+                            {value: {{ ((sb.left) / 1024) | round(1) }}, name: '未用'},
+                        ],
+                        label: {
+                            normal: {
+                                position: 'inner',
+                                formatter: '{c}T',
+                                textStyle: {
+                                    color: '#ffffff',
+                                    fontSize: 14
+                                }
+                            }
+                        },
+                        itemStyle: {
+                            emphasis: {
+                                shadowBlur: 10,
+                                shadowOffsetX: 0,
+                                shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            }
+                        }
+                    },
+                    center_x += 24,
+                {% endfor %}
+            ],
+            color: ['#fa827d', '#51b8fe', '#59c5a7']
+        };
+        // 使用指定的配置项和数据显示图表
+        strbChartPie.setOption(option);
+        window.onresize = function() {
+            strbChartPie.resize();
+            //console.log('myChart is resizing...')
+        };
+    // 存储版饼状图 chart-pie -->
+    // <!-- 计算版堆叠区域图 chart-area-1
+        {% set ctrlbDatas = controlBoardsSplit[0] %}
+        var ctrb_legend_data = [];
+        var ctrbDatas_series_data = [];
+        var ctrbDatas_series_category = []
+        {% for name in ctrlbDatas %}
+            ctrb_legend_data.push('{{ name }}');
+            //console.log('{{ name }}');
+        {% endfor %}
+        {% for data in ctrlbDatas['cpu_user'] %}
+          ctrbDatas_series_data.push({{ data }});
+        {% endfor %}
+        {% for category in controlBoardsSplit[1] %}
+            ctrbDatas_series_category.push('{{ category }}');
+        {% endfor %}
+        console.log(ctrbDatas_series_data);
+        console.log(ctrb_legend_data);
+        // 基于准备好的dom，初始化echarts实例
+        var ctrlbChartArea = echarts.init($('#ctrlb-chart-area-1')[0]);
+        // 指定图表的配置项和数据
+        var ctrlbOption = {
+            title: {
+                text: '主控板CPU资源占用',
+                x: 'center'
             },
             tooltip: {
-                visible: true,
-                format: "{0}%",
-                template: "#= series.name #: #= value #"
-            }
-        });
-        //重新绘制
-        $(window).on('resize', function () {
-            var chart = $(conf.selector).data('kendoChart');
-            chart.redraw();
-        });
-    };
-    $(document).ready(function(){
-        createChart({
-            selector: '#chart-area',    // 图表窗器
-            title: "主控板CPU资源占用",   // 图表标题
-            type: 'area',   // 图表类型
-            data: [
-                {% set ctrlbDatas = controlBoardsSplit[0] %}
-                {% for name, data in ctrlbDatas.items() %}
-                    {
-                        name: '{{ name }}',
-                        data: {{ data }}
-                    },
-                {% endfor %}
-                /*{
-                    name: 'India',
-                    data: [3.907, 7.943, 7.848, 9.284, 9.263, 9.801, 3.890, 8.238, 9.552, 6.855]
-                },
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross',
+                    label: {
+                        backgroundColor: '#6a7985'
+                    }
+                }
+            },
+            legend: {
+                orient: 'vertical',
+                x: 'left',
+                data: ['cpu_user'],
+                //data: ctrb_legend_data,
+            },
+            toolbox: {
+                feature: {
+                    saveAsImage: {}
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '%3',
+                containLabel: true
+            },
+            xAxis: [
                 {
-                    name: "World",
-                    data: [1.988, 2.733, 3.994, 3.464, 4.001, 3.939, 1.333, -2.245, 4.339, 2.727]
-                },
-                {
-                    name: "Haiti",
-                    data: [-0.253, 0.362, -3.519, 1.799, 2.252, 3.343, 0.843, 2.877, -5.416, 5.590]
-                },*/
+                    type: 'category',
+                    boundaryGap: false,
+                    data: ctrbDatas_series_category,
+                    //data: {{ controlBoardsSplit[1]|safe }}
+                }
             ],
-            categories: {{ controlBoardsSplit[1]|safe }}
-            //categories: [2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011]
-        });
-    });
-    // 计算版区域图 chart-area -->
+            yAxis: [
+                {
+                    type: 'value'
+                }
+            ],
+            series: [
+{#                {% for name, data in ctrlbDatas.items() %}#}
+{#                    {#}
+{#                        name: '{{ name|safe }}',#}
+{#                        type: 'line',#}
+{#                        stack: '总量',#}
+{#                        areaStyle: {normal: {}},#}
+{#                        data: {{ data }}#}
+{#                    },#}
+{#                {% endfor %}#}
+                {
+                    name: 'cpu_user',
+                    type: 'line',
+                    stack: '总量',
+                    areaStyle: {normal: {}},
+                    data: ctrbDatas_series_data,
+                    //data: {{ ctrlbDatas['cpu_user'] }}
+                }
+            ]
+        };
+        // 使用指定的配置项和数据显示图表
+        ctrlbChartArea.setOption(ctrlbOption);
+        window.onresize = function() {
+            ctrlbChartArea.resize();
+            //console.log('myChart is resizing...')
+        };
+        var ctrbChartArea_2 = echarts.init($('#ctrlb-chart-area-2')[0]);
+        var ctrlb2Option = {
+             xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: date
+            },
+            yAxis: {
+                boundaryGap: [0, '50%'],
+                type: 'value'
+            },
+            series: [
+                {
+                    name:'成交',
+                    type:'line',
+                    smooth:true,
+                    symbol: 'none',
+                    stack: 'a',
+                    areaStyle: {
+                        normal: {}
+                    },
+                    data: data
+                }
+            ]
+        };
+        ctrbChartArea_2.setOption(ctrlb2Option);
+        var base = +new Date(2014, 9, 3);
+        var oneDay = 24 * 3600 * 1000;
+        var date = [];
+
+        var data = [Math.random() * 150];
+        var now = new Date(base);
+
+        function addData(shift) {
+            now = [now.getFullYear(), now.getMonth() + 1, now.getDate()].join('/');
+            date.push(now);
+            data.push((Math.random() - 0.4) * 10 + data[data.length - 1]);
+
+            if (shift) {
+                date.shift();
+                data.shift();
+            }
+
+            now = new Date(+new Date(now) + oneDay);
+        }
+
+        for (var i = 1; i < 100; i++) {
+            addData();
+        }
+        // <!-- 计算版区域图 chart-area-2
+{#        function createChart(conf){#}
+{#            $(conf.selector).kendoChart({#}
+{#                title: {#}
+{#                    text: conf.title#}
+{#                },#}
+{#                //transitions: false,#}
+{#                legend: {#}
+{#                    position: 'top'#}
+{#                },#}
+{#                theme: 'bootstrap',#}
+{#                seriesDefaults: {#}
+{#                    type: conf.type,#}
+{#                    style: 'smooth'#}
+{#                },#}
+{#                series: conf.data,#}
+{#                valueAxis: {#}
+{#                    labels: {#}
+{#                        format: "{0}%"#}
+{#                    },#}
+{#                    line: {#}
+{#                        visible: false#}
+{#                    },#}
+{#                    //axisCrossingValue: -10#}
+{#                },#}
+{#                categoryAxis: {#}
+{#                    majorGridLines: {#}
+{#                        visible: false#}
+{#                    },#}
+{#                    categories: conf.categories,#}
+{#                    labels: {#}
+{#                        rotation: 'auto'#}
+{#                    }#}
+{#                },#}
+{#                tooltip: {#}
+{#                    visible: true,#}
+{#                    format: "{0}%",#}
+{#                    template: "#= series.name #: #= value #"#}
+{#                }#}
+{#            });#}
+{#            //重新绘制#}
+{#            $(window).on('resize', function () {#}
+{#                var chart = $(conf.selector).data('kendoChart');#}
+{#                chart.redraw();#}
+{#            });#}
+{#        };#}
+{#        createChart({#}
+{#            selector: '#ctrlb-chart-area-2',    // 图表窗器#}
+{#            title: "主控板CPU资源占用",   // 图表标题#}
+{#            type: 'area',   // 图表类型#}
+{#            data: [#}
+{#                {% set ctrlbDatas = controlBoardsSplit[0] %}#}
+{#                {% for name, data in ctrlbDatas.items() %}#}
+{#                    {#}
+{#                        name: '{{ name }}',#}
+{#                        data: {{ data }}#}
+{#                    },#}
+{#                {% endfor %}#}
+{#                /*{#}
+{#                    name: 'India',#}
+{#                    data: [3.907, 7.943, 7.848, 9.284, 9.263, 9.801, 3.890, 8.238, 9.552, 6.855]#}
+{#                },#}
+{#                {#}
+{#                    name: "World",#}
+{#                    data: [1.988, 2.733, 3.994, 3.464, 4.001, 3.939, 1.333, -2.245, 4.339, 2.727]#}
+{#                },#}
+{#                {#}
+{#                    name: "Haiti",#}
+{#                    data: [-0.253, 0.362, -3.519, 1.799, 2.252, 3.343, 0.843, 2.877, -5.416, 5.590]#}
+{#                },*/#}
+{#            ],#}
+{#            categories: {{ controlBoardsSplit[1]|safe }}#}
+{#            //categories: [2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011]#}
+{#        });#}
+        // 计算版区域图 chart-area -->
+        //设置定时器，定时执行 Ajax 请求，刷新当前实时监控页面数据
+        var refresh = setInterval(refreshIndex, 5000);  //每 10s 刷新一次
+        function refreshIndex() {
+            addData(true);
+                ctrbChartArea_2.setOption({
+                    xAxis: {
+                        data: date
+                    },
+                    series: [{
+                        name:'成交',
+                        data: data
+                    }]
+                });
+            $.ajax({
+                url: $SCRIPT_ROOT + '/controlBoard_deal_1_1',
+                type: 'GET',
+                dataType: 'json',
+            }).done(function (res) {
+                /*if(res){
+                    //更新主控板数据
+                  var ctrlb_chart = $('#ctrlb-chart-area-2').data('kendoChart');
+                  ctrlb_chart.options.series = res['datas'];
+                  ctrlb_chart.options.categoryAxis.categories = res['categories'];
+                  ctrlb_chart.refresh();
+                  console.log('页面在定时刷新!')
+                  console.log(res['datas'][0]['data']);
+                  console.log(res['categories']);
+                }
+                if(res) {
+                    //console.log('页面在定时刷新!');
+                    //console.log(res[0]['data'][0]['name'] + res[0]['data'][0]['value']);
+                    strbChartPie.setOption({
+                        series: res,
+                    });
+                }
+                if(res){
+                    //更新主控板数据
+                    console.log('页面在定时刷新!');
+                    console.log(res['categories']);
+                    ctrlbChartArea.setOption({
+                        xAxis: {
+                            type : 'category',
+                            boundaryGap : false,
+                            data: res['categories']
+                        },
+                        series: res['series']
+                    })
+                };*/
+                if(res){
+                    //更新主控板数据
+                    console.log('页面在定时刷新!');
+                    //console.log(res['categories']);
+                    var newDatas = res['series'][0]['data'];
+                    var newCategory = res['categories']
+                    console.log(newDatas);
+                    /*for (data of newDatas) {
+                        ctrbDatas_series_data.push(data);
+                        ctrbDatas_series_data.shift();
+                    }*/
+                    ctrbDatas_series_data.push(newDatas[0]);
+                    ctrbDatas_series_data.shift();
+                    ctrbDatas_series_category.push(newCategory[0]);
+                    ctrbDatas_series_category.shift();
+                    //console.log(ctrbDatas_series_data);
+                    ctrlbChartArea.setOption({
+                        xAxis: {
+                            data: ctrbDatas_series_category,
+                        },
+                        series: {
+                            data: ctrbDatas_series_data,
+                        }
+                        ///series: res['series'][0]
+                    })
+                };
+            })
+        };
+    })
     </script>
 {% endblock scripts %}

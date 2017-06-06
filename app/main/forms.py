@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
-from wtforms import SelectField, SubmitField
-from wtforms.validators import DataRequired
+from wtforms import SelectField, SubmitField, HiddenField
+from wtforms.validators import DataRequired, EqualTo
 from wtforms import ValidationError
 
 
@@ -16,3 +16,9 @@ class AddtaskForm(FlaskForm):
     taskAttr = SelectField(u'任务属性', choices=[
             ('time', u'时间'), ('performance', u'性能')
         ], validators=[DataRequired()])
+
+
+class SubmitTaskForm(FlaskForm):
+    # hidden_tag = HiddenField()
+    flag = HiddenField(render_kw={'id': 'tag', 'value': 0}, validators=[DataRequired()])
+    submitTask = SubmitField(u'任务提交')

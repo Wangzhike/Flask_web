@@ -4,13 +4,6 @@
 {% set active_page = 'deploy_task' %}
 {% block title %}Display Web App - 任务部署{% endblock %}
 
-{% block head %}
-    {{ super() }}
-    <!-- bootstrap fileinput 插件样式表 -->
-    <link href="{{ url_for('static', filename='fileinput/fileinput.min.css') }}" rel="stylesheet" type="text/css">
-    <link href="{{ url_for('static', filename='fileinput/img/loading.gif') }}" rel="icon">
-{% endblock head %}
-
 {% block page_header %}
     任务部署
 {% endblock page_header %}
@@ -63,9 +56,16 @@
                         </tbody>
                     </table>
                 </div>
-                <div style="margin-top: 1px;'">
-                    <button class="btn btn-primary" id="submitTask" type="addTask">任务提交</button>
-                </div>
+                <form class="form" method="post" role="form" onsubmit="return submitTaskForm(this)">
+                <!-- <form class="form" method="post" role="form"> -->
+                    {{ submitTaskForm.hidden_tag() }}
+                    {{ wtf.form_field(submitTaskForm.submitTask, class="btn btn-primary", disabled="disabled") }}
+                </form>
+{#                {% set submitTaskId = submitTaskForm.submitTask.id %}#}
+{#                {{ wtf.quick_form(submitTaskForm, button_map={ submitTaskId : 'primary'}) }}#}
+                <!-- <div style="margin-top: 1px;'">
+                    <button class="btn btn-primary" id="submitTask_btn" type="addTask">任务提交</button>
+                </div> -->
             </div>
         </div>
     </div>
@@ -83,10 +83,17 @@
             $('#taskData').fileinput({
                 uploadUrl: $SCRIPT_ROOT + '/addTask_deal',   //设置处理上传的 url 地址
                 uploadAsync: true,      //同步上传
-                uploadExtraData: {      //上传额外数据
-                    'taskType': $('#taskType').val(),
+                uploadExtraData:        //上传额外数据，使用回调函数，以便可以每次调用这个函数实时获取表单数据值
+                    function (previewId, index) {
+                        var obj = {};
+                        obj['taskType'] = $('#taskType').val();
+                        obj['taskAttr'] = $('#taskAttr').val();
+                        return obj;
+                    },
+                    /*{
+                     taskType': $('#taskType').val(),
                     'taskAttr': $('#taskAttr').val()
-                },
+                    },*/
                 language: 'zh',
                 browseClass: "btn btn-success",
                 browseLabel: "Pick Data",
@@ -118,6 +125,8 @@
             $(function () {
                 $('#addTask').bind('click', function () {
                     $('#taskData').fileinput('upload');
+                    var submitTask = $('form input[id=submitTask]')[0];
+                    submitTask.removeAttribute('disabled');
                     // 文件加载后动态改变任务池内容
                 });
             });
@@ -184,7 +193,8 @@
                 }
             });
             $(function () {
-                $('#submitTask').bind('click', function () {
+                $('#submitTask_btn').bind('click', function () {
+                    $('form input #submitTask')
                     $.ajax({
                         url: $SCRIPT_ROOT + '/submitTask_deal',
                         data: '',
@@ -200,6 +210,13 @@
                 });
             });
         });
-
+        function submitTaskForm(form) {
+            //alert('提交了表单!');
+            form.flag.value = 1;
+            //alert(form.flag.value);
+            console.log(form.flag);
+            //form[0].children[0].value = 1;
+            return true;
+        };
     </script>
 {% endblock scripts %}
