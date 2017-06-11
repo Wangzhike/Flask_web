@@ -25,7 +25,7 @@
                 <div class="king-block-content">
                     <div class="chart k-chart" data-role="chart" style="position: relative;">
                         <div class="table-responsive">
-                            <table class="table table-bordered table-hover table-striped">
+                            <table id="calBoard-table" class="table table-bordered table-hover table-striped">
                                 <thead>
                                     <tr>
                                     <th>编号</th>
@@ -158,12 +158,13 @@
 {{ super() }}
     <script>
     $(document).ready(function () {
-    // <!-- 存储版饼状图 chart-pie
+        {% set ctrlbDatas = controlBoardsSplit[0] %}
+    //<!-- 存储版饼状图
         var center_x = 14;
-         // 基于准备好的dom，初始化echarts实例
+         // 1. 基于准备好的dom，初始化echarts实例
         var strbChartPie = echarts.init($('#strb-chart-pie')[0]);
-        // 指定图表的配置项和数据
-        var option = {
+        // 2. 指定图表的配置项和数据
+        var strbOption = {
             title: {
                 text: '存储版资源使用情况',
                 subtext: '总容量： 20T',
@@ -270,33 +271,23 @@
             ],
             color: ['#fa827d', '#51b8fe', '#59c5a7']
         };
-        // 使用指定的配置项和数据显示图表
-        strbChartPie.setOption(option);
-        window.onresize = function() {
-            strbChartPie.resize();
-            //console.log('myChart is resizing...')
-        };
-    // 存储版饼状图 chart-pie -->
-    // <!-- 计算版堆叠区域图 chart-area-1
-        {% set ctrlbDatas = controlBoardsSplit[0] %}
-        var ctrb_legend_data = [];
-        var ctrbDatas_series_data = [];
-        var ctrbDatas_series_category = []
-        {% for name in ctrlbDatas %}
-            ctrb_legend_data.push('{{ name }}');
-            //console.log('{{ name }}');
+        // 3. 使用指定的配置项和数据显示图表
+        strbChartPie.setOption(strbOption);
+    //存储版饼状图 -->
+    //<!-- 计算版堆叠区域图 chart-area-1
+        var ctrlb_legend_data = [];
+        var ctrlb_series_data = {};
+        var ctrlb_xAxis_data = [];
+        {% for name, data in ctrlbDatas.items() %}
+            ctrlb_legend_data.push('{{ name }}');
+            ctrlb_series_data['{{ name }}'] = {{ data }};
         {% endfor %}
-        {% for data in ctrlbDatas['cpu_user'] %}
-          ctrbDatas_series_data.push({{ data }});
-        {% endfor %}
-        {% for category in controlBoardsSplit[1] %}
-            ctrbDatas_series_category.push('{{ category }}');
-        {% endfor %}
-        console.log(ctrbDatas_series_data);
-        console.log(ctrb_legend_data);
-        // 基于准备好的dom，初始化echarts实例
+        console.log('cpu_user: ' + ctrlb_series_data['cpu_user']);
+        console.log('cpu_system: ' + ctrlb_series_data['cpu_system']);
+        ctrlb_xAxis_data = {{ controlBoardsSplit[1]|safe }}
+        // 1. 基于准备好的dom，初始化echarts实例
         var ctrlbChartArea = echarts.init($('#ctrlb-chart-area-1')[0]);
-        // 指定图表的配置项和数据
+        // 2. 指定图表的配置项和数据
         var ctrlbOption = {
             title: {
                 text: '主控板CPU资源占用',
@@ -312,10 +303,10 @@
                 }
             },
             legend: {
-                orient: 'vertical',
-                x: 'left',
-                data: ['cpu_user'],
-                //data: ctrb_legend_data,
+                top: 30,
+                orient: 'horizontal',//'vertical',
+                x: 'center',//'left',
+                data: ctrlb_legend_data,
             },
             toolbox: {
                 feature: {
@@ -323,247 +314,239 @@
                 }
             },
             grid: {
-                left: '3%',
-                right: '4%',
-                bottom: '%3',
+                left: '1%',
+                right: '1%',
+                bottom: '1%',
                 containLabel: true
             },
             xAxis: [
                 {
                     type: 'category',
                     boundaryGap: false,
-                    data: ctrbDatas_series_category,
-                    //data: {{ controlBoardsSplit[1]|safe }}
+                    data: ctrlb_xAxis_data,
                 }
             ],
             yAxis: [
                 {
-                    type: 'value'
+                    type: 'value',
+                    axisLabel: {
+                        formatter: '{value}%'
+                    }
                 }
             ],
             series: [
-{#                {% for name, data in ctrlbDatas.items() %}#}
-{#                    {#}
-{#                        name: '{{ name|safe }}',#}
-{#                        type: 'line',#}
-{#                        stack: '总量',#}
-{#                        areaStyle: {normal: {}},#}
-{#                        data: {{ data }}#}
-{#                    },#}
-{#                {% endfor %}#}
-                {
-                    name: 'cpu_user',
-                    type: 'line',
-                    stack: '总量',
-                    areaStyle: {normal: {}},
-                    data: ctrbDatas_series_data,
-                    //data: {{ ctrlbDatas['cpu_user'] }}
-                }
-            ]
+                {% for name, data in ctrlbDatas.items() %}
+                    {
+                        name: '{{ name|safe }}',
+                        type: 'line',
+                        stack: '总量',
+                        areaStyle: {normal: {}},
+                        data: {{ data }}
+                    },
+                {% endfor %}
+            ],
+        color: ['#7bcce4', '#ffbea7', '#7cc67c']  //cpu_system cpu_user cpu_idle
         };
-        // 使用指定的配置项和数据显示图表
+        // 3. 使用指定的配置项和数据显示图表
         ctrlbChartArea.setOption(ctrlbOption);
+    //当窗口大小改变时，重新绘制存储版饼状图和计算版堆叠区域图 chart-area-1
         window.onresize = function() {
             ctrlbChartArea.resize();
-            //console.log('myChart is resizing...')
+            console.log('ctrlbChartArea is resizing...');
+            strbChartPie.resize();
+            console.log('strbChartPie is resizing...');
         };
-        var ctrbChartArea_2 = echarts.init($('#ctrlb-chart-area-2')[0]);
-        var ctrlb2Option = {
-             xAxis: {
-                type: 'category',
-                boundaryGap: false,
-                data: date
-            },
-            yAxis: {
-                boundaryGap: [0, '50%'],
-                type: 'value'
-            },
-            series: [
-                {
-                    name:'成交',
-                    type:'line',
-                    smooth:true,
-                    symbol: 'none',
-                    stack: 'a',
-                    areaStyle: {
-                        normal: {}
+    //计算版堆叠区域图 chart-area-1 -->
+    //<!-- 计算版区域图 chart-area-2
+        var ctrlb_cpu_user_data = [];
+        var ctrlb_cpu_sys_data = [];
+        var ctrlb_cpu_idle_data = [];
+        var ctrlb_categories = [];
+        ctrlb_cpu_user_data = {{ ctrlbDatas['cpu_user'] }};
+        ctrlb_cpu_sys_data = {{ ctrlbDatas['cpu_system'] }};
+        ctrlb_cpu_idle_data = {{ ctrlbDatas['cpu_idle'] }};
+        ctrlb_categories = {{ controlBoardsSplit[1]|safe }}
+        function createChart(conf){
+            $(conf.selector).kendoChart({
+                title: {
+                    text: conf.title
+                },
+                //transitions: false,
+                legend: {
+                    position: 'top'
+                },
+                theme: 'bootstrap',
+                seriesDefaults: {
+                    type: conf.type,
+                    style: 'smooth'
+                },
+                series: conf.data,
+                valueAxis: {
+                    labels: {
+                        format: "{0}%"
                     },
-                    data: data
+                    line: {
+                        visible: false
+                    },
+                    //axisCrossingValue: -10
+                },
+                categoryAxis: {
+                    majorGridLines: {
+                        visible: false
+                    },
+                    categories: conf.categories,
+                    labels: {
+                        rotation: 'auto'
+                    }
+                },
+                tooltip: {
+                    visible: true,
+                    format: "{0}%",
+                    template: "#= series.name #: #= value #"
                 }
-            ]
+            });
+            //重新绘制
+            $(window).on('resize', function () {
+                var chart = $(conf.selector).data('kendoChart');
+                chart.redraw();
+                console.log('kendoChart is resizing...')
+            });
         };
-        ctrbChartArea_2.setOption(ctrlb2Option);
-        var base = +new Date(2014, 9, 3);
-        var oneDay = 24 * 3600 * 1000;
-        var date = [];
-
-        var data = [Math.random() * 150];
-        var now = new Date(base);
-
-        function addData(shift) {
-            now = [now.getFullYear(), now.getMonth() + 1, now.getDate()].join('/');
-            date.push(now);
-            data.push((Math.random() - 0.4) * 10 + data[data.length - 1]);
-
-            if (shift) {
-                date.shift();
-                data.shift();
-            }
-
-            now = new Date(+new Date(now) + oneDay);
-        }
-
-        for (var i = 1; i < 100; i++) {
-            addData();
-        }
-        // <!-- 计算版区域图 chart-area-2
-{#        function createChart(conf){#}
-{#            $(conf.selector).kendoChart({#}
-{#                title: {#}
-{#                    text: conf.title#}
-{#                },#}
-{#                //transitions: false,#}
-{#                legend: {#}
-{#                    position: 'top'#}
-{#                },#}
-{#                theme: 'bootstrap',#}
-{#                seriesDefaults: {#}
-{#                    type: conf.type,#}
-{#                    style: 'smooth'#}
-{#                },#}
-{#                series: conf.data,#}
-{#                valueAxis: {#}
-{#                    labels: {#}
-{#                        format: "{0}%"#}
-{#                    },#}
-{#                    line: {#}
-{#                        visible: false#}
-{#                    },#}
-{#                    //axisCrossingValue: -10#}
-{#                },#}
-{#                categoryAxis: {#}
-{#                    majorGridLines: {#}
-{#                        visible: false#}
-{#                    },#}
-{#                    categories: conf.categories,#}
-{#                    labels: {#}
-{#                        rotation: 'auto'#}
-{#                    }#}
-{#                },#}
-{#                tooltip: {#}
-{#                    visible: true,#}
-{#                    format: "{0}%",#}
-{#                    template: "#= series.name #: #= value #"#}
-{#                }#}
-{#            });#}
-{#            //重新绘制#}
-{#            $(window).on('resize', function () {#}
-{#                var chart = $(conf.selector).data('kendoChart');#}
-{#                chart.redraw();#}
-{#            });#}
-{#        };#}
-{#        createChart({#}
-{#            selector: '#ctrlb-chart-area-2',    // 图表窗器#}
-{#            title: "主控板CPU资源占用",   // 图表标题#}
-{#            type: 'area',   // 图表类型#}
-{#            data: [#}
-{#                {% set ctrlbDatas = controlBoardsSplit[0] %}#}
-{#                {% for name, data in ctrlbDatas.items() %}#}
-{#                    {#}
-{#                        name: '{{ name }}',#}
-{#                        data: {{ data }}#}
-{#                    },#}
-{#                {% endfor %}#}
-{#                /*{#}
-{#                    name: 'India',#}
-{#                    data: [3.907, 7.943, 7.848, 9.284, 9.263, 9.801, 3.890, 8.238, 9.552, 6.855]#}
-{#                },#}
-{#                {#}
-{#                    name: "World",#}
-{#                    data: [1.988, 2.733, 3.994, 3.464, 4.001, 3.939, 1.333, -2.245, 4.339, 2.727]#}
-{#                },#}
-{#                {#}
-{#                    name: "Haiti",#}
-{#                    data: [-0.253, 0.362, -3.519, 1.799, 2.252, 3.343, 0.843, 2.877, -5.416, 5.590]#}
-{#                },*/#}
-{#            ],#}
-{#            categories: {{ controlBoardsSplit[1]|safe }}#}
-{#            //categories: [2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011]#}
-{#        });#}
-        // 计算版区域图 chart-area -->
-        //设置定时器，定时执行 Ajax 请求，刷新当前实时监控页面数据
-        var refresh = setInterval(refreshIndex, 5000);  //每 10s 刷新一次
-        function refreshIndex() {
-            addData(true);
-                ctrbChartArea_2.setOption({
-                    xAxis: {
-                        data: date
+        createChart({
+            selector: '#ctrlb-chart-area-2',    // 图表窗器
+            title: "主控板CPU资源占用",   // 图表标题
+            type: 'area',   // 图表类型
+            data: [
+                {% set ctrlbDatas = controlBoardsSplit[0] %}
+                {% for name, data in ctrlbDatas.items() %}
+                    {
+                        name: '{{ name }}',   //cpu 占用率类型
+                        data: {{ data }}      //cpu 占用率
                     },
-                    series: [{
-                        name:'成交',
-                        data: data
-                    }]
-                });
+                {% endfor %}
+                /*{
+                    name: 'India',
+                    data: [3.907, 7.943, 7.848, 9.284, 9.263, 9.801, 3.890, 8.238, 9.552, 6.855]
+                },
+                {
+                    name: "World",
+                    data: [1.988, 2.733, 3.994, 3.464, 4.001, 3.939, 1.333, -2.245, 4.339, 2.727]
+                },
+                {
+                    name: "Haiti",
+                    data: [-0.253, 0.362, -3.519, 1.799, 2.252, 3.343, 0.843, 2.877, -5.416, 5.590]
+                },*/
+            ],
+            categories: {{ controlBoardsSplit[1]|safe }}  //时间戳
+            //categories: [2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011]
+        });
+    //计算版区域图 chart-area -->
+    //设置定时器，定时执行 Ajax 请求，刷新当前实时监控页面数据
+        var refresh = setInterval(refreshIndex, 10000);  //每 10s 刷新一次
+        function refreshIndex() {
             $.ajax({
-                url: $SCRIPT_ROOT + '/controlBoard_deal_1_1',
+                url: $SCRIPT_ROOT + '/index_deal',
                 type: 'GET',
                 dataType: 'json',
             }).done(function (res) {
-                /*if(res){
-                    //更新主控板数据
-                  var ctrlb_chart = $('#ctrlb-chart-area-2').data('kendoChart');
-                  ctrlb_chart.options.series = res['datas'];
-                  ctrlb_chart.options.categoryAxis.categories = res['categories'];
-                  ctrlb_chart.refresh();
-                  console.log('页面在定时刷新!')
-                  console.log(res['datas'][0]['data']);
-                  console.log(res['categories']);
-                }
-                if(res) {
+                if(res['calbDatas']) {
+                    var datas = res['calbDatas'];
+                    var tablebody = '';
+                    for (var data of datas) {
+                        tablebody += '<tr>';
+                        var calbName = data['name'];
+                        tablebody += '<td>' + calbName + '</td>';
+                        var dsp1Idle = data['dsp1_idle'];
+                        if (dsp1Idle) {
+                            tablebody += '<td class="success">' + '空闲' + '</td>';
+                        } else {
+                            tablebody += '<td class="danger">' + '工作' + '</td>';
+                        }
+                        var dsp2Idle = data['dsp2_idle'];
+                        if (dsp2Idle) {
+                            tablebody += '<td class="success">' + '空闲' + '</td>';
+                        } else {
+                            tablebody += '<td class="danger">' + '工作' + '</td>';
+                        }
+                        var fpga_extra = data['fpga_extra'];
+                        tablebody += '<td class="info">' + fpga_extra + '</td>';
+                        tablebody += '</tr>';
+                    };
+                    $('#calBoard-table tbody')[0].innerHTML = tablebody;
+                };
+                if(res['strbDatas']) {
+                    var datas = res['strbDatas'];
                     //console.log('页面在定时刷新!');
                     //console.log(res[0]['data'][0]['name'] + res[0]['data'][0]['value']);
                     strbChartPie.setOption({
-                        series: res,
+                        series: datas,
                     });
                 }
-                if(res){
-                    //更新主控板数据
+                if(res['ctrlbDatas_1']) {
+                    var datas = res['ctrlbDatas_1'];
                     console.log('页面在定时刷新!');
-                    console.log(res['categories']);
-                    ctrlbChartArea.setOption({
-                        xAxis: {
-                            type : 'category',
-                            boundaryGap : false,
-                            data: res['categories']
+                    //console.log(ctrlb_series_data['cpu_user']);
+                    console.log('cpu_user: ' + ctrlb_series_data['cpu_user']);
+                    console.log('cpu_system: ' + ctrlb_series_data['cpu_system']);
+                    ctrlb_series_data['cpu_user'].push(datas['cpu_user']);
+                    ctrlb_series_data['cpu_system'].push(datas['cpu_system']);
+                    ctrlb_series_data['cpu_idle'].push(datas['cpu_idle']);
+                    ctrlb_xAxis_data.push(datas['category']);
+                    ctrlb_series_data['cpu_user'].shift();
+                    ctrlb_series_data['cpu_system'].shift();
+                    ctrlb_series_data['cpu_idle'].shift();
+                    ctrlb_xAxis_data.shift();
+                    var series = [
+                        {
+                            name: 'cpu_user',
+                            data: ctrlb_series_data['cpu_user']
                         },
-                        series: res['series']
-                    })
-                };*/
-                if(res){
-                    //更新主控板数据
-                    console.log('页面在定时刷新!');
-                    //console.log(res['categories']);
-                    var newDatas = res['series'][0]['data'];
-                    var newCategory = res['categories']
-                    console.log(newDatas);
-                    /*for (data of newDatas) {
-                        ctrbDatas_series_data.push(data);
-                        ctrbDatas_series_data.shift();
-                    }*/
-                    ctrbDatas_series_data.push(newDatas[0]);
-                    ctrbDatas_series_data.shift();
-                    ctrbDatas_series_category.push(newCategory[0]);
-                    ctrbDatas_series_category.shift();
-                    //console.log(ctrbDatas_series_data);
-                    ctrlbChartArea.setOption({
-                        xAxis: {
-                            data: ctrbDatas_series_category,
+                        {
+                            name: 'cpu_system',
+                            data: ctrlb_series_data['cpu_system']
                         },
-                        series: {
-                            data: ctrbDatas_series_data,
+                        {
+                            name: 'cpu_idle',
+                            data: ctrlb_series_data['cpu_idle']
                         }
-                        ///series: res['series'][0]
+                    ];
+                    ctrlbChartArea.setOption({
+                        xAxis: {
+                            data: ctrlb_xAxis_data,
+                        },
+                        series: series
                     })
+                };
+                if(res['ctrlbDatas_2']){
+                    var datas = res['ctrlbDatas_2'];
+                    //console.log('页面在定时刷新!');
+                    ctrlb_cpu_user_data.push(datas['cpu_user']);
+                    ctrlb_cpu_sys_data.push(datas['cpu_system']);
+                    ctrlb_cpu_idle_data.push(datas['cpu_idle']);
+                    ctrlb_categories.push(datas['category']);
+                    ctrlb_cpu_user_data.shift();
+                    ctrlb_cpu_sys_data.shift();
+                    ctrlb_cpu_idle_data.shift();
+                    ctrlb_categories.shift();
+                    //console.log(ctrlb_categories)
+                    //更新主控板数据
+                    var ctrlb_chart_area_2 = $('#ctrlb-chart-area-2').data('kendoChart');
+                    ctrlb_chart_area_2.options.series = [
+                        {
+                            name: 'cpu_user',
+                            data: ctrlb_cpu_user_data
+                        },
+                        {
+                            name: 'cpu_system',
+                            data: ctrlb_cpu_sys_data
+                        },
+                        {
+                            name: 'cpu_idle',
+                            data: ctrlb_cpu_idle_data
+                        }
+                    ];
+                    ctrlb_chart_area_2.options.categoryAxis.categories = ctrlb_categories;
+                    ctrlb_chart_area_2.refresh();
                 };
             })
         };

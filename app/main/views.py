@@ -33,42 +33,24 @@ def parseControlBoards(controlBoards):
         categories.append(ctrlb.timestamp.strftime('%H:%M:%S'))
     controlBoardsSplit.append(ctrlbDatas)
     controlBoardsSplit.append(categories)
-    print(categories)
     return controlBoardsSplit
 
 
-# 执行对于主控板数据刷新的 Ajax 请求
-@main.route('/controlBoard_deal_2', methods=['GET'])
-def controlBoard_deal_2():
-    # 首先与主控板通信更新 ControlBoard 模型中数据
-    updateModel(parseControlBoardData)
-    # 查询数据库获取当前的主控板数据
-    controlBoards = ControlBoard.query.order_by(ControlBoard.timestamp).all()
-    # 解析主控板数据并生成对应的 json 格式
-    ctrlbDatas = {
-        'datas': [
-            {
-                'name': 'cpu_user',
-                'data': []
-            },
-            {
-                'name': 'cpu_system',
-                'data': []
-            },
-            {
-                'name': 'cpu_idle',
-                'data': []
-            }
-        ],
-        'categories': []
-    }
-    for ctrlb in controlBoards:
-        ctrlbDatas['datas'][0]['data'].append(ctrlb.cpu_user_percent)
-        ctrlbDatas['datas'][1]['data'].append(ctrlb.cpu_sys_percent)
-        ctrlbDatas['datas'][2]['data'].append(ctrlb.cpu_idle_percent)
-        # 按 '09:32:35' 格式格式化时间戳
-        ctrlbDatas['categories'].append(ctrlb.timestamp.strftime('%H:%M:%S'))
-    return jsonify(ctrlbDatas)
+@main.route('/calBoard_deal', methods=['GET'])
+def calBoard_deal():
+    updateModel(parseCalBoardData)
+    calBoards = CalBoard.query.order_by(CalBoard.name).all()
+    calbDatas = []
+    for calb in calBoards:
+        calbData = {
+            'name': calb.name,
+            'dsp1_idle': calb.dsp1_isIdle(),
+            'dsp2_idle': calb.dsp2_isIdle(),
+            'fpga_extra': calb.fpga_extra
+        }
+        calbDatas.append(calbData)
+    # return jsonify(calbDatas)
+    return calbDatas
 
 
 # 执行对于主控板数据刷新的 Ajax 请求
@@ -111,7 +93,8 @@ def storeBoard_deal():
         }
         strbDatas.append(strbData)
         center_X += 24
-    return jsonify(strbDatas)
+    # return jsonify(strbDatas)
+    return strbDatas
 
 
 # 执行对于主控板数据刷新的 Ajax 请求
@@ -120,91 +103,52 @@ def controlBoard_deal_1():
     # 首先与主控板通信更新 ControlBoard 模型中数据
     updateModel(parseControlBoardData)
     # 查询数据库获取当前的主控板数据
-    controlBoards = ControlBoard.query.order_by(ControlBoard.timestamp).all()
+    # 按照时间戳降序方式将控制板数据排序，也就是说第一位数据时间最新
+    controlBoard = ControlBoard.query.order_by(ControlBoard.timestamp.desc()).first()
     # 解析主控板数据并生成对应的 json 格式
     ctrlbDatas = {
-        'series': [
-            {
-                'name': 'cpu_user',
-                'type': 'line',
-                'stack': '总量',
-                'areaStyle': '{normal: {}}',
-                'data': []
-            },
-            {
-                'name': 'cpu_system',
-                'type': 'line',
-                'stack': '总量',
-                'areaStyle': '{normal: {}}',
-                'data': []
-            },
-            {
-                'name': 'cpu_idle',
-                'type': 'line',
-                'stack': '总量',
-                'areaStyle': '{normal: {}}',
-                'data': []
-            }
-        ],
-        'categories': []
-    }
-    for ctrlb in controlBoards:
-        ctrlbDatas['series'][0]['data'].append(ctrlb.cpu_user_percent)
-        ctrlbDatas['series'][1]['data'].append(ctrlb.cpu_sys_percent)
-        ctrlbDatas['series'][2]['data'].append(ctrlb.cpu_idle_percent)
+        'cpu_user': controlBoard.cpu_user_percent,
+        'cpu_system': controlBoard.cpu_sys_percent,
+        'cpu_idle': controlBoard.cpu_idle_percent,
         # 按 '09:32:35' 格式格式化时间戳
-        ctrlbDatas['categories'].append(ctrlb.timestamp.strftime('%H:%M:%S'))
-    return jsonify(ctrlbDatas)
+        'category': controlBoard.timestamp.strftime('%H:%M:%S')
+    }
+    # return jsonify(ctrlbDatas)
+    return ctrlbDatas
 
 
 # 执行对于主控板数据刷新的 Ajax 请求
-@main.route('/controlBoard_deal_1_1', methods=['GET'])
-def controlBoard_deal_1_1():
+@main.route('/controlBoard_deal_2', methods=['GET'])
+def controlBoard_deal_2():
     # 首先与主控板通信更新 ControlBoard 模型中数据
     updateModel(parseControlBoardData)
     # 查询数据库获取当前的主控板数据
-    # 按照时间戳升序方式将控制板数据排序，也就是说最后一位数据时间最新
-    controlBoards = ControlBoard.query.order_by(ControlBoard.timestamp)[-1]
+    # 按照时间戳降序方式将控制板数据排序，也就是说第一位数据时间最新
+    controlBoard = ControlBoard.query.order_by(ControlBoard.timestamp.desc()).first()
     # 解析主控板数据并生成对应的 json 格式
     ctrlbDatas = {
-        'series': [
-            {
-                'name': 'cpu_user',
-                'type': 'line',
-                'stack': '总量',
-                'areaStyle': '{normal: {}}',
-                'data': []
-            },
-            {
-                'name': 'cpu_system',
-                'type': 'line',
-                'stack': '总量',
-                'areaStyle': '{normal: {}}',
-                'data': []
-            },
-            {
-                'name': 'cpu_idle',
-                'type': 'line',
-                'stack': '总量',
-                'areaStyle': '{normal: {}}',
-                'data': []
-            }
-        ],
-        'categories': []
+        'cpu_user': controlBoard.cpu_user_percent,
+        'cpu_system': controlBoard.cpu_sys_percent,
+        'cpu_idle': controlBoard.cpu_idle_percent,
+        # 按 '09:32:35' 格式格式化时间戳
+        'category': controlBoard.timestamp.strftime('%H:%M:%S')
     }
-    # 这里就只有一个数据了
-    # for ctrlb in controlBoards:
-    #     ctrlbDatas['series'][0]['data'].append(ctrlb.cpu_user_percent)
-    #     ctrlbDatas['series'][1]['data'].append(ctrlb.cpu_sys_percent)
-    #     ctrlbDatas['series'][2]['data'].append(ctrlb.cpu_idle_percent)
-    #     # 按 '09:32:35' 格式格式化时间戳
-    #     ctrlbDatas['categories'].append(ctrlb.timestamp.strftime('%H:%M:%S'))
-    ctrlbDatas['series'][0]['data'].append(controlBoards.cpu_user_percent)
-    ctrlbDatas['series'][1]['data'].append(controlBoards.cpu_sys_percent)
-    ctrlbDatas['series'][2]['data'].append(controlBoards.cpu_idle_percent)
-    # 按 '09:32:35' 格式格式化时间戳
-    ctrlbDatas['categories'].append(controlBoards.timestamp.strftime('%H:%M:%S'))
-    return jsonify(ctrlbDatas)
+    # return jsonify(ctrlbDatas)
+    return ctrlbDatas
+
+
+@main.route('/index_deal', methods=['GET'])
+def index_deal():
+    index_data = {
+        'calbDatas': calBoard_deal(),
+        'strbDatas': storeBoard_deal(),
+        'ctrlbDatas_1': controlBoard_deal_1(),
+        'ctrlbDatas_2': controlBoard_deal_2()
+    }
+    print(index_data['strbDatas'])
+    print(index_data['ctrlbDatas_1'])
+    print(index_data['ctrlbDatas_2'])
+    return jsonify(index_data)
 
 
 @main.route('/')
@@ -260,7 +204,7 @@ def deploy_task():
                         db.session.rollback()
                         flash(u'任务提交失败!')
                 flash(u'任务提交成功!')
-                return redirect(url_for('main.deploy_task'))
+                return redirect(url_for('main.issue_task'))
         return render_template('deploy_task.html',
                                addTaskForm=addTaskForm,
                                submitTaskForm=submitTaskForm)

@@ -3,11 +3,1011 @@
 {% set active_page = 'issue_task' %}
 {% block title %}Display Web App - 任务下发{% endblock %}
 
+{% block head %}
+  {{ super() }}
+  <!-- bkTopology 拓扑图插件样式表 -->
+  <link href="https://o.qcloud.com/static_api/v3/assets/bkTopology-1.1/css/bkTopology.css" rel="stylesheet"  type="text/css">
+{% endblock head %}
+
 {% block page_header %}
     任务下发
 {% endblock page_header %}
+
 {% block page_content %}
-<div class="page-header">
-    <p>Hello, this is a simple project to display.</p>
-</div>
-{% endblock %}
+    <div class="row">
+        <div class="col-md-4">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <div class="panel-title">
+                      任务部署情况
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-condensed table-striped">
+                            <thead>
+                                <tr>
+                                    <th>任务名称</th>
+                                    <th>策略</th>
+                                    <th>数据文件URL</th>
+                                    <th>部署状态</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if taskList %}
+                                    {% for taskElem in taskList %}
+                                        <tr>
+                                            <td>{{ taskElem.name }}</td>
+                                            <td>{{ taskElem.attr }}</td>
+                                            <td>{{ taskElem.url }}</td>
+                                            <td><button class="btn btn-default" type="submit">执行</button></td>
+                                        </tr>
+                                    {% endfor %}
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <div class="panel-title">
+                      任务分配硬件拓扑图
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <!-- <div id="chart-topo-2" class="chart  k-chart" data-role="chart" style="position: relative;"></div> -->
+                    <div id="chart-topo" class="chart k-chart" data-role="chart" style="position: relative; height: 600px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock page_content %}
+
+{% block scripts %}
+    {{ super() }}
+    <!-- bkTopology 拓扑图插件 js 文件 -->
+    <script src="https://o.qcloud.com/static_api/v3/assets/bkTopology-1.1/js/bkTopology.js"></script>
+    <script>
+    $(document).ready(function(){
+    //chart-topy
+        //1. 基于准备好的dom，初始化echarts实例
+        var chart_topo = echarts.init($('#chart-topo')[0]);
+        //将当前图表根据宽和高分别分为28份和11份，方便布局和定位。
+        //取得当前图表的宽和高，计算得到单位宽和单位高。
+        //var chrt_w = $('#chart-topo')[0].clientWidth;
+        //var chrt_h = $('#chart-topo')[0].clientHeight;
+        var chrt_w = chart_topo.getWidth();
+        var chrt_h = chart_topo.getHeight();
+        var per_w = chrt_w / 28;
+        var per_h = chrt_h / 11;
+        //console.log('per width: ' + per_w);
+        //console.log('per height: ' + per_h);
+        var strb_y = 6.5;
+        var dsp_y = 2.5;
+        var dsp_core1_y = 3.4;
+        var dsp_core2_y = 1.6;
+        var data = [{
+            name: 'PowerPC',
+            idle: true,
+            x: 14,
+            y: 9,
+        }, {
+            name: 'strb1',
+            idle: true,
+            x: 4.5,
+            y: strb_y
+        }, {
+            name: 'dsp1',
+            idle: true,
+            x: 3,
+            y: dsp_y
+        }, {
+            name: 'core1',
+            idle: true,
+            x: 3,
+            y: dsp_core1_y
+        }, {
+            name: 'core2',
+            idle: true,
+            x: 3,
+            y: dsp_core2_y
+        }];
+        var line = [{
+            name: 'bus',
+            type: 'lines',
+            coordinateSystem: 'cartesian2d',
+            zlevel: 4,
+            lineStyle: {
+                normal: {
+                    color: '#fa827d',
+                    width: 10,
+                    curveness: 0
+                }
+            },
+            data: [{
+                coords: [
+                    [1, 5],
+                    [27, 5]
+                ],
+            }],
+        }, {
+            name: 'PowerPC2bus',
+            type: 'lines',
+            coordinateSystem: 'cartesian2d',
+            zlevel: 4,
+            lineStyle: {
+                normal: {
+                    color: '#fa827d',
+                    width: 5,
+                    curveness: 0
+                }
+            },
+            data: [{
+                coords: [
+                    [14, 8],
+                    [14, 5]
+                ],
+            }],
+        }, {
+            name: 'strb2bus1',
+            type: 'lines',
+            coordinateSystem: 'cartesian2d',
+            zlevel: 4,
+            lineStyle: {
+                normal: {
+                    color: '#fa827d',
+                    width: 5,
+                    curveness: 0
+                }
+            },
+            data: [{
+                coords: [
+                    [4.5, 6],
+                    [4.5, 5]
+                ],
+            }],
+        }, {
+            name: 'dsp2bus1',
+            type: 'lines',
+            coordinateSystem: 'cartesian2d',
+            zlevel: 4,
+            lineStyle: {
+                normal: {
+                    color: '#fa827d',
+                    width: 5,
+                    curveness: 0
+                }
+            },
+            data: [{
+                coords: [
+                    [3, 5],
+                    [3, 4]
+                ],
+            }],
+        }];
+        //循环加入剩余的3个存储版及连线
+        var origin_x = data[1]['x'];
+        var line_x = line[2].data[0].coords[0][0];
+        for (var i = 1; i < 4; i++) {
+            var strb = {
+                name: 'strb' + (i + 1),
+                idle: true,
+                x: origin_x + 6 * i,
+                y: strb_y
+            };
+            var strb2bus = {
+                name: 'strb2bus' + (i + 1),
+                type: 'lines',
+                coordinateSystem: 'cartesian2d',
+                zlevel: 4,
+                lineStyle: {
+                    normal: {
+                        color: '#fa827d',
+                        width: 5,
+                        curveness: 0
+                    }
+                },
+                data: [{
+                    coords: [
+                        [line_x + i * 6, 6],
+                        [line_x + i * 6, 5]
+                    ],
+                }],
+            };
+            if (i >= 2) {
+                strb['x'] += 1;
+                strb2bus.data[0].coords[0][0] += 1;
+                strb2bus.data[0].coords[1][0] += 1;
+                //console.log('对 strb3 的 x 值进行了 +1');
+            }
+            data.push(strb);
+            line.push(strb2bus);
+        }
+        //循环加入剩余的7个 DSP 以及 core1 和 core2及连线
+        origin_x = data[2]['x'];
+        line_x = line[3].data[0].coords[0][0];
+        for (var i = 1; i < 8; i++) {
+            var dsp = {
+                name: 'dsp' + (i + 1),
+                idle: true,
+                x: origin_x + 3 * i,
+                y: dsp_y
+            };
+            var core1 = {
+                name: 'core1',
+                idle: true,
+                x: origin_x + 3 * i,
+                y: dsp_core1_y
+            };
+            var core2 = {
+                name: 'core2',
+                idle: true,
+                x: origin_x + 3 * i,
+                y: dsp_core2_y
+            };
+            var dsp2bus = {
+                name: 'dsp2bus' + (i + 1),
+                type: 'lines',
+                coordinateSystem: 'cartesian2d',
+                zlevel: 4,
+                lineStyle: {
+                    normal: {
+                        color: '#fa827d',
+                        width: 5,
+                        curveness: 0
+                    }
+                },
+                data: [{
+                    coords: [
+                        [line_x + i * 3, 5],
+                        [line_x + i * 3, 4]
+                    ],
+                }],
+            };
+            if (i >= 4) {
+                dsp['x'] += 1;
+                core1['x'] += 1;
+                core2['x'] += 1;
+                dsp2bus.data[0].coords[0][0] += 1;
+                dsp2bus.data[0].coords[1][0] += 1;
+                //console.log('对 dsp6 的 x 值进行了 +1')
+            }
+            data.push(dsp);
+            data.push(core1);
+            data.push(core2);
+            line.push(dsp2bus);
+        }
+        function getScatterData(data) {
+            //将当前图表根据宽和高分别分为28份和11份，方便布局和定位。
+            //取得当前图表的宽和高，计算得到单位宽和单位高。
+            var chrt_w = chart_topo.getWidth();
+            var chrt_h = chart_topo.getHeight();
+            var per_w = chrt_w / 28;
+            var per_h = chrt_h / 11;
+            console.log('chrt_w: ' + chrt_w + ' chrt_h: ' + chrt_h);
+            console.log('per_w: ' + per_w + ' per_h: ' + per_h);
+            var scatterData = [];
+            //！！！echart是以中心画图！！！
+            for (var i = 0; i < data.length; i++) {
+                var scatter = {
+                    name: data[i].name,
+                    value: [data[i].x, data[i].y]
+                };
+                //如果当前数据代表的硬件是空闲的
+                if( data[i].idle ) {
+                    scatter['itemStyle'] = {
+                        normal: {
+                            color: '#7cc67c',       //空闲
+                        }
+                    }
+                } else {
+                    scatter['itemStyle'] = {
+                        normal: {
+                            color: '#ffbea7',       //工作
+                        }
+                    }
+                }
+                //如果当前数据是主控板 PowerPC
+                if( data[i].name.indexOf('PowerPC') != -1) {
+                    scatter['symbol'] = 'rect';
+                    scatter['symbolSize'] = [per_w*24, per_h*2];
+                } //如果当前数据是存储版 strb
+                else if ( data[i].name.indexOf('strb') != -1 ) {
+                    scatter['symbol'] = 'rect';
+                    scatter['symbolSize'] = [per_w*5, per_h];
+                } //如果当前数据是计算版 dsp
+                else if ( data[i].name.indexOf('dsp') != -1 ) {
+                    scatter['symbol'] = 'rect';
+                    scatter['symbolSize'] = [per_w * 2, per_h * 2.8];
+                    scatter['itemStyle'] = {
+                        normal: {
+                            color: '#fff',
+                            borderColor: '#d4d5d7',
+                        }
+                    };
+                    scatter['label'] = {
+                        normal: {
+                            textStyle: {
+                                color: 'black'
+                            }
+                        }
+                    }
+                } //如果当前数据是 dsp 核1 core1 或 dsp 核2 core2
+                else if ( data[i].name.indexOf('core1') != -1
+                || data[i].name.indexOf('core2') != -1 ) {
+                    scatter['symbol'] = 'circle';
+                    scatter['symbolSize'] = [per_w*1.2, per_h*0.8];
+                    scatter['label'] = {
+                        normal: {
+                            textStyle: {
+                                fontSize: 12
+                            }
+                        }
+                    }
+                }
+                scatterData.push(scatter);
+            }
+            return scatterData;
+        }
+
+        function getLinesData(line) {
+            var lineData = [];
+            for (var i = 0; i < line.length; i++) {
+                var lines = {
+                    name: line[i].name,
+                    type: line[i].type,
+                    coordinateSystem: line[i].coordinateSystem,
+                    zlevel: line[i].zlevel,
+                    lineStyle: line[i].lineStyle,
+                    data: line[i].data
+                };
+                //如果是总线本身 bus
+                if ( lines.name.indexOf('bus') === 0 ) {
+                    lines['symbol'] = ['rect', 'rect'];
+                    lines['symbolSize'] = [15, 15];
+                } //如果当前是从主控板到总线的连线 PowerPC2bus
+                else if( lines.name.indexOf('PowerPC2bus') != -1 ) {
+                    lines['symbol'] = ['arrow', 'arrow'];
+                } //如果当前是从存储版到总线的连线 strb2bus
+                else if ( lines.name.indexOf('strb2bus') != -1 ) {
+                    lines['symbol'] = ['arrow', 'arrow'];
+                } //如果当前是从计算版到总线的连线 dsp2bus
+                else if ( lines.name.indexOf('dsp2bus') != -1 ) {
+                    lines['symbol'] = ['arrow', 'arrow'];
+                }
+                lineData.push(lines);
+            }
+            return lineData;
+        }
+
+        function getSeries() {
+            var series = [];
+            series.push({
+                type: 'scatter',
+                itemStyle: {
+                    normal: {
+                        color: '#7cc67c',
+                        borderColor: '#d4d5d7',
+                    }
+                },
+                // 圆圈内的文字
+                label: {
+                    normal: {
+                        show: true,
+                        formatter: '{b}',
+                        position: 'inside', //值显示
+                        textStyle: {
+                            color: 'white',
+                            fontSize: 14
+                        }
+                    }
+                },
+                data: getScatterData(data),
+            });
+            return series.concat(getLinesData(line));
+        }
+        //console.log(getSeries());
+        // 指定图表的配置项和数据
+        var option = {
+            title: {
+                text: '任务分配硬件拓扑图',
+                x: 'center',
+                padding: [20, 5, 10, 5]    //上 右 下 左
+            },
+            tooltip: {},
+            grid: {
+                left: '3%',
+                right: '3%',
+                top: '5%',
+                bottom: '1%'
+            },
+            xAxis: {
+                type: 'value',
+                show: false,
+                splitLine: {
+                    show: true,
+                },
+                axisLabel: {
+                    show: true
+                },
+                max: 28,
+                min: 0
+            },
+            yAxis: {
+                type: 'value',
+                show: false,
+                splitLine: {
+                    show: true,
+                },
+                axisLabel: {
+                    show: true
+                },
+                max: 11,
+                min: 0
+            },
+            series: getSeries(),
+            /*series: [
+                {
+                    type: 'scatter',
+                    itemStyle: {
+                        normal: {
+                            //shadowBlur: 10,
+                            //shadowColor: 'rgba(120, 36, 50, 0.5)',
+                            //shadowOffsetY: 5,
+                            color: '#7cc67c',//#52cdd5 #dff0d8
+                            borderColor: '#d4d5d7',
+                        }
+                    },
+                    // 圆圈内的文字
+                    label: {
+                        normal: {
+                            show: true,
+                            formatter: '{b}',
+                            position: 'inside', //值显示
+                            textStyle: {
+                                color: 'black',
+                                fontSize: 16
+                            }
+                        }
+                    },
+                    data: [
+                        {
+                            name: 'PowerPc',
+                            value: [14, 9],
+                            symbol: 'rect',
+                            symbolSize: [per_w*24, per_h*2],
+                        },
+                        {
+                            name: 'strb1',
+                            value: [4.5, 6.5],
+                            symbol: 'rect',
+                            symbolSize: [per_w*5, per_h],
+                        },
+                        {
+                            name: 'strb2',
+                            value: [10.5, 6.5],
+                            symbol: 'rect',
+                            symbolSize: [per_w*5, per_h],
+                        },
+                        {
+                            name: 'strb3',
+                            value: [17.5, 6.5],
+                            symbol: 'rect',
+                            symbolSize: [per_w*5, per_h],
+                        },
+                        {
+                            name: 'strb4',
+                            value: [23.5, 6.5],
+                            symbol: 'rect',
+                            symbolSize: [per_w*5, per_h],
+                        },
+                        {
+                            name: 'dsp1',
+                            value: [3, 2.5],
+                            symbol: 'rect',
+                            symbolSize: [per_w * 2, per_h * 3],
+                            itemStyle: {
+                                normal: {
+                                    color: '#7bcce4',
+                                    borderColor: '#d4d5d7',
+                                }
+                            },
+                        },
+                        {
+                            name: 'core1',
+                            zlevel: 4,
+                            value: [3, 3.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+                        {
+                            name: 'core2',
+                            zlevel: 4,
+                            value: [3, 1.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+                        {
+                            name: 'dsp2',
+                            value: [6, 2.5],
+                            symbol: 'rect',
+                            symbolSize: [per_w * 2, per_h * 3],
+                            itemStyle: {
+                                normal: {
+                                    color: '#7bcce4',
+                                    borderColor: '#d4d5d7',
+                                }
+                            },
+                        },
+                        {
+                            name: 'core1',
+                            zlevel: 4,
+                            value: [6, 3.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+                        {
+                            name: 'core2',
+                            zlevel: 4,
+                            value: [6, 1.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+                        {
+                            name: 'dsp3',
+                            value: [9, 2.5],
+                            symbol: 'rect',
+                            symbolSize: [per_w * 2, per_h * 3],
+                            itemStyle: {
+                                normal: {
+                                    color: '#7bcce4',
+                                    borderColor: '#d4d5d7',
+                                }
+                            },
+                        },
+                        {
+                            name: 'core1',
+                            zlevel: 4,
+                            value: [9, 3.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+                        {
+                            name: 'core2',
+                            zlevel: 4,
+                            value: [9, 1.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+                        {
+                            name: 'dsp4',
+                            value: [12, 2.5],
+                            symbol: 'rect',
+                            symbolSize: [per_w * 2, per_h * 3],
+                            itemStyle: {
+                                normal: {
+                                    color: '#7bcce4',
+                                    borderColor: '#d4d5d7',
+                                }
+                            },
+                        },
+                        {
+                            name: 'core1',
+                            zlevel: 4,
+                            value: [12, 3.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+                        {
+                            name: 'core2',
+                            zlevel: 4,
+                            value: [12, 1.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+                        {
+                            name: 'dsp5',
+                            value: [16, 2.5],
+                            symbol: 'rect',
+                            symbolSize: [per_w * 2, per_h * 3],
+                            itemStyle: {
+                                normal: {
+                                    color: '#7bcce4',
+                                    borderColor: '#d4d5d7',
+                                }
+                            },
+                        },
+                        {
+                            name: 'core1',
+                            zlevel: 4,
+                            value: [16, 3.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+                        {
+                            name: 'core2',
+                            zlevel: 4,
+                            value: [16, 1.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+                        {
+                            name: 'dsp6',
+                            value: [19, 2.5],
+                            symbol: 'rect',
+                            symbolSize: [per_w * 2, per_h * 3],
+                            itemStyle: {
+                                normal: {
+                                    color: '#7bcce4',
+                                    borderColor: '#d4d5d7',
+                                }
+                            },
+                        },
+                        {
+                            name: 'core1',
+                            zlevel: 4,
+                            value: [19, 3.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+                        {
+                            name: 'core2',
+                            zlevel: 4,
+                            value: [19, 1.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+                        {
+                            name: 'dsp7',
+                            value: [22, 2.5],
+                            symbol: 'rect',
+                            symbolSize: [per_w * 2, per_h * 3],
+                            itemStyle: {
+                                normal: {
+                                    color: '#fff',
+                                    borderColor: '#d4d5d7',
+                                }
+                            },
+                        },
+                        {
+                            name: 'core1',
+                            zlevel: 4,
+                            value: [22, 3.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+                        {
+                            name: 'core2',
+                            zlevel: 4,
+                            value: [22, 1.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+                        {
+                            name: 'dsp8',
+                            value: [25, 2.5],
+                            symbol: 'rect',
+                            symbolSize: [per_w * 2, per_h * 3],
+                            itemStyle: {
+                                normal: {
+                                    color: '#fff',
+                                    borderColor: '#d4d5d7',
+                                    borderWidth: 2,
+                                }
+                            },
+                        },
+                        {
+                            name: 'core1',
+                            zlevel: 4,
+                            value: [25, 3.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+                        {
+                            name: 'core2',
+                            zlevel: 4,
+                            value: [25, 1.5],
+                            symbol: 'circle',
+                            symbolSize: [per_w*1.6, per_h*0.8],
+                        },
+
+
+                    ],
+                },
+                {
+                    name: '',
+                    type: 'lines',
+                    coordinateSystem: 'cartesian2d',
+                    symbol: ['rect', 'rect'],
+                    symbolSize: [15, 15],
+                    zlevel: 4,
+                    lineStyle: {
+                        normal: {
+                            color: '#fa827d',
+                            width: 10,
+                            curveness: 0
+                        }
+                    },
+                    data: [{
+                        coords: [
+                            [1, 5],
+                            [27, 5]
+                        ],
+                    }]
+                },
+                {
+                    name: '',
+                    type: 'lines',
+                    coordinateSystem: 'cartesian2d',
+                    symbol: ['arrow', 'arrow'],
+                    zlevel: 4,
+                    lineStyle: {
+                        normal: {
+                            color: '#67a2d4',
+                            width: 5,
+                            curveness: 0
+                        }
+                    },
+                    data: [{
+                        coords: [
+                            [14, 8],
+                            [14, 5]
+                        ],
+                    }]
+                },
+                {
+                    name: '',
+                    type: 'lines',
+                    coordinateSystem: 'cartesian2d',
+                    symbol: ['arrow', 'arrow'],
+                    zlevel: 4,
+                    lineStyle: {
+                        normal: {
+                            color: '#67a2d4',
+                            width: 5,
+                            curveness: 0
+                        }
+                    },
+                    data: [{
+                        coords: [
+                            [4.5, 6],
+                            [4.5, 5]
+                        ],
+                    }]
+                },
+                {
+                    name: '',
+                    type: 'lines',
+                    coordinateSystem: 'cartesian2d',
+                    symbol: ['arrow', 'arrow'],
+                    zlevel: 4,
+                    lineStyle: {
+                        normal: {
+                            color: '#67a2d4',
+                            width: 5,
+                            curveness: 0
+                        }
+                    },
+                    data: [{
+                        coords: [
+                            [10.5, 6],
+                            [10.5, 5]
+                        ],
+                    }]
+                },
+                {
+                    name: '',
+                    type: 'lines',
+                    coordinateSystem: 'cartesian2d',
+                    symbol: ['arrow', 'arrow'],
+                    zlevel: 4,
+                    lineStyle: {
+                        normal: {
+                            color: '#67a2d4',
+                            width: 5,
+                            curveness: 0
+                        }
+                    },
+                    data: [{
+                        coords: [
+                            [17.5, 6],
+                            [17.5, 5]
+                        ],
+                    }]
+                },
+                {
+                    name: '',
+                    type: 'lines',
+                    coordinateSystem: 'cartesian2d',
+                    symbol: ['arrow', 'arrow'],
+                    zlevel: 4,
+                    lineStyle: {
+                        normal: {
+                            color: '#67a2d4',
+                            width: 5,
+                            curveness: 0
+                        }
+                    },
+                    data: [{
+                        coords: [
+                            [23.5, 6],
+                            [23.5, 5]
+                        ],
+                    }]
+                },
+                {
+                    name: '',
+                    type: 'lines',
+                    coordinateSystem: 'cartesian2d',
+                    symbol: ['arrow', 'arrow'],
+                    zlevel: 4,
+                    lineStyle: {
+                        normal: {
+                            color: '#67a2d4',
+                            width: 5,
+                            curveness: 0
+                        }
+                    },
+                    data: [{
+                        coords: [
+                            [3, 5],
+                            [3, 4]
+                        ],
+                    }]
+                },
+                {
+                    name: '',
+                    type: 'lines',
+                    coordinateSystem: 'cartesian2d',
+                    symbol: ['arrow', 'arrow'],
+                    zlevel: 4,
+                    lineStyle: {
+                        normal: {
+                            color: '#67a2d4',
+                            width: 5,
+                            curveness: 0
+                        }
+                    },
+                    data: [{
+                        coords: [
+                            [6, 5],
+                            [6, 4]
+                        ],
+                    }]
+                },
+                {
+                    name: '',
+                    type: 'lines',
+                    coordinateSystem: 'cartesian2d',
+                    symbol: ['arrow', 'arrow'],
+                    zlevel: 4,
+                    lineStyle: {
+                        normal: {
+                            color: '#67a2d4',
+                            width: 5,
+                            curveness: 0
+                        }
+                    },
+                    data: [{
+                        coords: [
+                            [9, 5],
+                            [9, 4]
+                        ],
+                    }]
+                },
+                {
+                    name: '',
+                    type: 'lines',
+                    coordinateSystem: 'cartesian2d',
+                    symbol: ['arrow', 'arrow'],
+                    zlevel: 4,
+                    lineStyle: {
+                        normal: {
+                            color: '#67a2d4',
+                            width: 5,
+                            curveness: 0
+                        }
+                    },
+                    data: [{
+                        coords: [
+                            [12, 5],
+                            [12, 4]
+                        ],
+                    }]
+                },
+                {
+                    name: '',
+                    type: 'lines',
+                    coordinateSystem: 'cartesian2d',
+                    symbol: ['arrow', 'arrow'],
+                    zlevel: 4,
+                    lineStyle: {
+                        normal: {
+                            color: '#67a2d4',
+                            width: 5,
+                            curveness: 0
+                        }
+                    },
+                    data: [{
+                        coords: [
+                            [16, 5],
+                            [16, 4]
+                        ],
+                    }]
+                },
+                {
+                    name: '',
+                    type: 'lines',
+                    coordinateSystem: 'cartesian2d',
+                    symbol: ['arrow', 'arrow'],
+                    zlevel: 4,
+                    lineStyle: {
+                        normal: {
+                            color: '#67a2d4',
+                            width: 5,
+                            curveness: 0
+                        }
+                    },
+                    data: [{
+                        coords: [
+                            [19, 5],
+                            [19, 4]
+                        ],
+                    }]
+                },
+                {
+                    name: '',
+                    type: 'lines',
+                    coordinateSystem: 'cartesian2d',
+                    symbol: ['arrow', 'arrow'],
+                    zlevel: 4,
+                    lineStyle: {
+                        normal: {
+                            color: '#67a2d4',
+                            width: 5,
+                            curveness: 0
+                        }
+                    },
+                    data: [{
+                        coords: [
+                            [22, 5],
+                            [22, 4]
+                        ],
+                    }]
+                },
+                {
+                    name: '',
+                    type: 'lines',
+                    coordinateSystem: 'cartesian2d',
+                    symbol: ['arrow', 'arrow'],
+                    zlevel: 4,
+                    lineStyle: {
+                        normal: {
+                            color: '#67a2d4',
+                            width: 5,
+                            curveness: 0
+                        }
+                    },
+                    data: [{
+                        coords: [
+                            [25, 5],
+                            [25, 4]
+                        ],
+                    }]
+                },
+            ],*/
+            };
+        // 使用指定的配置项和数据显示图表
+        chart_topo.setOption(option);
+    //当窗口大小改变时，重新绘制存储版饼状图和计算版堆叠区域图 chart-area-1
+        window.onresize = function() {
+            option.series = getSeries();
+            chart_topo.resize();
+            chart_topo.setOption(option);
+        };
+    })
+    </script>
+{% endblock scripts %}

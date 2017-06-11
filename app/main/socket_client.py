@@ -56,14 +56,14 @@ def parseControlBoardData(data):
         # 按照时间戳升序方式将控制板数据排序，也就是说最后一位数据时间最新
         controlBoards = ControlBoard.query.order_by(ControlBoard.timestamp).all()
 
-        for i in range(0, len(controlBoards)):
+        # for i in range(0, len(controlBoards)):
             # 用后面一位较新的数据覆盖前面那个较老的数据，最后一位数据需要在接下来手动更新
-            print('id: %s user: %s sys: %s idle: %s timestamp: %s' %(
-                controlBoards[i].id,
-                controlBoards[i].cpu_user_percent,
-                controlBoards[i].cpu_sys_percent,
-                controlBoards[i].cpu_idle_percent,
-                controlBoards[i].timestamp))
+            # print('id: %s user: %s sys: %s idle: %s timestamp: %s' %(
+            #     controlBoards[i].id,
+            #     controlBoards[i].cpu_user_percent,
+            #     controlBoards[i].cpu_sys_percent,
+            #     controlBoards[i].cpu_idle_percent,
+            #     controlBoards[i].timestamp))
 
         if len(controlBoards) != 0:
             for i in range(0, len(controlBoards)-1):
