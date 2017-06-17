@@ -70,7 +70,7 @@ class User(UserMixin, db.Model):
     # tasks 属性代表了这个关系的面向对象视角。对于一个 User 类的实例，其 taskTemps 属性将返回
     # 与角色相关联的任务组成的列表。第一个参数表明这个关系的另一端是哪个模型。
     # backref 参数向 Task 模型中添加一个 user_taskTemp 属性，从而定义反向关系。
-    # 这一属性可替代 user_id 访问 Task 模型，此时获取的是模型对象，而不是外键的值
+    # 这一属性可替代 user_id 访问 TaskTemp 模型，此时获取的是模型对象，而不是外键的值
     taskTemps = db.relationship('TaskTemp', backref='user_taskTemp', lazy='dynamic')
 
     def __init__(self, **kwargs):
@@ -311,6 +311,12 @@ class ControlBoard(db.Model):
                 print('Add data to ControlBoard model occurs error: %s' % err)
                 db.session.rollback()
 
+class Task_Status(object):
+    WAITING = 0x00          # 等待
+    EXECUTABLE = 0x01       # 可执行
+    RUNNING = 0x02          # 执行中
+    DONE = 0x03             # 执行完毕
+
 
 class Task(db.Model):
     __tablename__ = 'tasks'
@@ -318,7 +324,13 @@ class Task(db.Model):
     type = db.Column(db.String)
     attr = db.Column(db.String)
     data_file_name = db.Column(db.String)
+    data_treated_file_name = db.Column(db.String)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow())
+    # 任务状态
+    task_status = db.Column(db.SmallInteger, default=Task_Status.WAITING)
+    # 任务 id ，由主控板生成并返回
+    task_id = db.Column(db.SmallInteger, default=-1)
+    task_hwResource = db.Column(db.String, default='')
     # user_id 这个外键建立起 Task 模型与 User 模型之间多对一的关系
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 

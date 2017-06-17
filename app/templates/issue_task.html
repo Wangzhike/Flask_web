@@ -15,42 +15,55 @@
 
 {% block page_content %}
     <div class="row">
-        <div class="col-md-4">
+        <div class="col-md-5">
             <div class="panel panel-default">
                 <div class="panel-heading">
                     <div class="panel-title">
-                      任务部署情况
+                      {{ current_user.username }} 的任务部署情况
                     </div>
                 </div>
                 <div class="panel-body">
+                    {% set can_all_running = false %}
                     <div class="table-responsive">
-                        <table class="table table-hover table-condensed table-striped">
+                        <table id="task-alive-pool" class="table table-hover table-condensed table-striped">
                             <thead>
                                 <tr>
                                     <th>任务名称</th>
-                                    <th>策略</th>
-                                    <th>数据文件URL</th>
+                                    <th>任务编号</th>
+                                    <!--<th>策略</th>
+                                    <th>数据文件URL</th>-->
                                     <th>部署状态</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% if taskList %}
-                                    {% for taskElem in taskList %}
-                                        <tr>
-                                            <td>{{ taskElem.name }}</td>
-                                            <td>{{ taskElem.attr }}</td>
-                                            <td>{{ taskElem.url }}</td>
-                                            <td><button class="btn btn-default" type="submit">执行</button></td>
-                                        </tr>
-                                    {% endfor %}
-                                {% endif %}
+                                {% for alive_task in alive_tasks_queue %}
+                                    <tr>
+                                        <td>{{ alive_task.get('taskName') }}</td>
+                                        <td>{{ alive_task.get('taskId') }}</td>
+                                       <!-- <th>{{ alive_task.get('taskAttr') }}</th>
+                                        <th>{{ alive_task.get('taskURL') }}</th>-->
+                                        <td>
+                                            {% set alive_task_status = alive_task.get('taskStatus') %}
+                                            {% set alive_task_taskId = alive_task.get('taskId') %}
+                                            {% if alive_task_status == Task_Status.WAITING %}
+                                                <button id= "{{ alive_task_taskId }}"type="button" class="btn btn-default" disabled="disabled">等待</button>
+                                            {% elif alive_task_status == Task_Status.EXECUTABLE %}
+                                                <button id= "{{ alive_task_taskId}}" type="button" class="btn btn-success">执行</button>
+                                            {% elif alive_task_status == Task_Status.RUNNING %}
+                                                <button id= "{{ alive_task_taskId }}" type="button" class="btn btn-danger" disabled="disabled">执行中</button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
                             </tbody>
                         </table>
+                        <button id="all_running" type="button" class="btn btn-success"
+                            {% if executable_len == 0 %}disabled="disabled"{% endif %}>全部执行</button>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-8">
+        <div class="col-md-7">
             <div class="panel panel-default">
                 <div class="panel-heading">
                     <div class="panel-title">
@@ -94,26 +107,36 @@
             idle: true,
             x: 14,
             y: 9,
+            id: 'PowerPC',
+            color: '#fa827d',
         }, {
             name: 'strb1',
             idle: true,
             x: 4.5,
-            y: strb_y
+            y: strb_y,
+            id: 'strb1',
+            color: '#fa827d',
         }, {
             name: 'dsp1',
             idle: true,
             x: 3,
-            y: dsp_y
+            y: dsp_y,
+            id: 'dsp1',
+            color: '#fa827d',
         }, {
             name: 'core1',
             idle: true,
             x: 3,
-            y: dsp_core1_y
+            y: dsp_core1_y,
+            id: 1,
+            color: '#fa827d',
         }, {
             name: 'core2',
             idle: true,
             x: 3,
-            y: dsp_core2_y
+            y: dsp_core2_y,
+            id: 2,
+            color: '#fa827d',
         }];
         var line = [{
             name: 'bus',
@@ -196,7 +219,9 @@
                 name: 'strb' + (i + 1),
                 idle: true,
                 x: origin_x + 6 * i,
-                y: strb_y
+                y: strb_y,
+                id: 'strb' + (i+1),
+                color: '#fa827d',
             };
             var strb2bus = {
                 name: 'strb2bus' + (i + 1),
@@ -234,19 +259,25 @@
                 name: 'dsp' + (i + 1),
                 idle: true,
                 x: origin_x + 3 * i,
-                y: dsp_y
+                y: dsp_y,
+                id: 'dsp' + (i+1),
+                color: '#fa827d',
             };
             var core1 = {
                 name: 'core1',
                 idle: true,
                 x: origin_x + 3 * i,
-                y: dsp_core1_y
+                y: dsp_core1_y,
+                id: 1 + 2*i,
+                color: '#fa827d',
             };
             var core2 = {
                 name: 'core2',
                 idle: true,
                 x: origin_x + 3 * i,
-                y: dsp_core2_y
+                y: dsp_core2_y,
+                id: 2 + 2*i,
+                color: '#fa827d',
             };
             var dsp2bus = {
                 name: 'dsp2bus' + (i + 1),
@@ -294,7 +325,8 @@
             for (var i = 0; i < data.length; i++) {
                 var scatter = {
                     name: data[i].name,
-                    value: [data[i].x, data[i].y]
+                    value: [data[i].x, data[i].y],
+                    id: data[i].id,
                 };
                 //如果当前数据代表的硬件是空闲的
                 if( data[i].idle ) {
@@ -306,7 +338,7 @@
                 } else {
                     scatter['itemStyle'] = {
                         normal: {
-                            color: '#ffbea7',       //工作
+                            color: data[i].color, //'#fa827d',       //工作
                         }
                     }
                 }
@@ -346,7 +378,7 @@
                                 fontSize: 12
                             }
                         }
-                    }
+                    };
                 }
                 scatterData.push(scatter);
             }
@@ -1008,6 +1040,152 @@
             chart_topo.resize();
             chart_topo.setOption(option);
         };
+    //为单个执行按钮和全部执行按钮定义统一的任务下发处理函数
+    function issue_task_refresh(res) {
+        var alive_tasks = res['alive_tasks_queue'];
+        for (var aliveTask of alive_tasks) {
+            alive_task_taskStatus = aliveTask['taskStatus'];
+            alive_task_taskId = aliveTask['taskId'];
+            button = $('#task-alive-pool tbody tr button[id=' + alive_task_taskId + ']')[0];
+         if (alive_task_taskStatus === {{ Task_Status.WAITING }}) {
+             button.classList.value = 'btn btn-default';
+             button.innerText = '等待';
+             button.disabled = 'disabled';
+         }
+         else if (alive_task_taskStatus === {{ Task_Status.EXECUTABLE }}) {
+             button.classList.value = 'btn btn-success';
+             button.innerText = '执行';
+             button.disabled = '';
+         }
+         else if (alive_task_taskStatus === {{ Task_Status.RUNNING }}) {
+             button.classList.value = 'btn btn-danger';
+             button.innerText = '执行中';
+             button.disabled = 'disabled';
+         }
+        }
+        //$('#task-alive-pool tbody')[0].innerHTML = tablebody;
+        var executable_len = res['executable_len'];
+        var running_len = res['running_len'];
+        var all_running_button = $('#all_running')[0];
+        if ( executable_len === 0) {
+         if ( running_len != 0 ) {
+             all_running_button.classList.value = 'btn btn-danger';
+             all_running_button.disabled = 'disabled';
+             all_running_button.innerText = '全部执行中';
+         } else if ( running_len === 0 ) {
+             all_running_button.classList.value = 'btn btn-success';
+             all_running_button.disabled = 'disabled';
+             all_running_button.innerText = '全部执行';
+         }
+        } else {
+         all_running_button.classList.value = 'btn btn-success';
+         all_running_button.innerText = '全部执行';
+        }
+    }
+    //定义所用可以分配给要执行任务的颜色，因为总共有16个 DSP core，所以执行任务的总数不会超过16个
+    var taskColor = ['#ffbea7', '#51b8fe', '#61a0a8', '#d48265',
+                    '#7eb00a', '#91c7ae', '#749f83', '#ca8622',
+                    '#bda29a', '#6e7074', '#c4ccd3', '#6f5553',
+                    '#7eb00a', '#c9ab00', '#59678c', '#c05050'];
+    var taskColorIndex = 0;
+    //为所有可以执行的按钮注册 click 事件
+        {% for alive_task in alive_tasks_queue %}
+            $(function () {
+                var taskId = {{ alive_task.get('taskId')|tojson }};
+                $('#'+ taskId).bind('click', function () {
+                     var taskHWResource = {{ alive_task.get('taskHWResource') }};
+                     console.log('taskId: ' + taskId + ' taskHWResource: ' + taskHWResource);
+                     var chart_topo_scatter_data = option.series[0].data;
+                     var isMatch = false;
+                     //console.log(chart_topo_scatter_data);
+                     for (var hwResource of taskHWResource) {
+                         console.log(hwResource);
+                         for (var i = 0; i < data.length; i++) {
+                             if( data[i].id === hwResource) {
+                                 isMatch = true;
+                                 data[i].idle = false;
+                                 console.log('匹配到了id: ' + data[i].id);
+                                 data[i].color = taskColor[taskColorIndex];
+                             }
+                         }
+                     }
+                     //如果匹配到了对应的资源
+                     if( isMatch ) {
+                         taskColorIndex = (taskColorIndex + 1) % taskColor.length;
+                         console.log('taskColorIndex: ' + taskColorIndex);
+                         $.ajax({
+                             url: $SCRIPT_ROOT + '/issueTask_deal',
+                             data: {
+                                 'taskIds': JSON.stringify([taskId]),
+                             },
+                             type: 'POST',
+                             dateType: 'json',
+                         }).done(function (res) {
+                             if(res['status'] === 0) {
+                                 console.log('任务下发成功!');
+                                 option.series = getSeries();
+                                 chart_topo.setOption(option);
+                                 issue_task_refresh(res);
+                             } else {
+                                 alert('任务下发失败!');
+                             }
+                         })
+                     }
+                });
+            });
+        {% endfor %}
+    //全部执行按钮的 click 事件处理
+        $(function () {
+            $('#all_running').bind('click', function () {
+                var can_running_tasks = [];
+                {% for alive_task in alive_tasks_queue %}
+                    {% if alive_task.get('taskStatus') == Task_Status.EXECUTABLE %}
+                        can_running_tasks.push({{ alive_task|tojson }});
+                    {% endif %}
+                {% endfor %}
+                var task = [];
+                var buttons = [];
+                console.log(can_running_tasks);
+                for (var can_running_task of can_running_tasks) {
+                    var taskHWResource = can_running_task['taskHWResource'];
+                    var taskId = can_running_task['taskId'];
+                    var isMatch = false;
+                    for (var hwResource of taskHWResource) {
+                         console.log(hwResource);
+                         for (var i = 0; i < data.length; i++) {
+                             if( data[i].id === hwResource) {
+                                 isMatch = true;
+                                 data[i].idle = false;
+                                 console.log('匹配到了id: ' + data[i].id);
+                                 data[i].color = taskColor[taskColorIndex];
+                                 console.log(data[i].color);
+                             }
+                         }
+                    }
+                    if( isMatch ) {
+                        console.log('taskId: ' + taskId);
+                        taskColorIndex = (taskColorIndex + 1) % taskColor.length;
+                        console.log('taskColorIndex: ' + taskColorIndex);
+                        task.push(taskId);
+                        buttons.push($('#task-pool tbody button[id=' + taskId + ']')[0]);
+                     }
+                }
+                $.ajax({
+                    url: $SCRIPT_ROOT + '/issueTask_deal',
+                    data: {'taskIds': JSON.stringify(task)},
+                    type: 'POST',
+                    dataType: 'json'
+                }).done(function (res) {
+                    if (res.status === 0) {
+                        option.series = getSeries();
+                        chart_topo.setOption(option);
+                        issue_task_refresh(res);
+                    } else {
+                        alert('任务下发失败!');
+                    }
+                });
+            });
+        });
     })
     </script>
 {% endblock scripts %}

@@ -1,8 +1,8 @@
 """initial migration
 
-Revision ID: 69dc729a366a
+Revision ID: f4179b90a1a4
 Revises: 
-Create Date: 2017-06-04 14:35:16.909920
+Create Date: 2017-06-12 19:39:00.383043
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '69dc729a366a'
+revision = 'f4179b90a1a4'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -73,6 +73,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('type', sa.String(), nullable=True),
     sa.Column('attr', sa.String(), nullable=True),
+    sa.Column('data_file_name', sa.String(), nullable=True),
     sa.Column('timestamp', sa.DateTime(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
@@ -83,7 +84,10 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('type', sa.String(), nullable=True),
     sa.Column('attr', sa.String(), nullable=True),
+    sa.Column('data_file_name', sa.String(), nullable=True),
     sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.Column('task_status', sa.SmallInteger(), nullable=True),
+    sa.Column('task_id', sa.SmallInteger(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
