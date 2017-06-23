@@ -52,14 +52,24 @@
                             </tr>
                         </thead>
                         <tbody>
-
+                            {% for add_task in add_task_to_taskPool %}
+                                <tr>
+                                    <td>{{ add_task.get('taskName') }}</td>
+                                    <td>{{ add_task.get('taskAttr') }}</td>
+                                    <td>{{ add_task.get('taskDataURL') }}</td>
+                                </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
                 <form class="form" method="post" role="form" onsubmit="return submitTaskForm(this)">
                 <!-- <form class="form" method="post" role="form"> -->
                     {{ submitTaskForm.hidden_tag() }}
-                    {{ wtf.form_field(submitTaskForm.submitTask, class="btn btn-primary", disabled="disabled") }}
+                    {% if add_task_to_taskPool|length > 0 %}
+                        {{ wtf.form_field(submitTaskForm.submitTask, class="btn btn-primary") }}
+                    {% else %}
+                        {{ wtf.form_field(submitTaskForm.submitTask, class="btn btn-primary", disabled="disabled") }}
+                    {% endif %}
                 </form>
 {#                {% set submitTaskId = submitTaskForm.submitTask.id %}#}
 {#                {{ wtf.quick_form(submitTaskForm, button_map={ submitTaskId : 'primary'}) }}#}
@@ -117,7 +127,7 @@
                 allowedFileExtensions: ['txt',
                                         'json', 'xml', 'xls', 'xlsx',
                                         'jpg', 'gif', 'png', 'bmp'],            //上传文件的扩展名
-                maxFilePreviewSize: 16 * 1024,        //最大文件大小16*1024KB(16M)，如果不设置，默认大小25M
+                maxFilePreviewSize: 100 * 1024,        //最大文件大小100*1024KB(100M)，如果不设置，默认大小25M
                 showAjaxErrorDetails: false    /* 注意！！！ 目前页面有个很大的bug，当显示 Ajax 的错误信息时，
                                                页面排版会完全乱掉，目前没有时间研究这个原因，并且这些错误信息
                                                对于用户来说并不需要，所以可以不用显示，至于这个 bug 留待以后解决 */

@@ -161,6 +161,9 @@ class User(UserMixin, db.Model):
         db.session.add(self)
         return True
 
+    def is_Administrator(self):
+        return self.role.name == "Administrator"
+
     def gravatar(self, size=100, default='identicon', rating='g'):
         if request.is_secure:
             url = 'https://secure.gravatar.com/avatar'

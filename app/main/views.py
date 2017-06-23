@@ -5,12 +5,13 @@ from flask import request, render_template, redirect,\
 from flask_login import current_user
 from . import main
 from .. import db
-from ..models import CalBoard, StoreBoard, ControlBoard, Task, TaskTemp, Task_Status
+from ..models import CalBoard, StoreBoard, ControlBoard, User,\
+                    Task, TaskTemp, Task_Status
 from socket_client import updateModel, parseTaskQueue
 from socket_client import parseCalBoardData, parseStoreBoardData,\
                         parseControlBoardData, parseDeployTaskData,\
                         parseIssueTaskData, parseIssueTaskQueue
-from forms import AddtaskForm, SubmitTaskForm
+from forms import AddtaskForm, SubmitTaskForm, ViewResultsForm
 import os
 from datetime import datetime
 from werkzeug.utils import secure_filename
@@ -140,16 +141,19 @@ def controlBoard_deal_2():
 
 @main.route('/index_deal', methods=['GET'])
 def index_deal():
-    index_data = {
-        'calbDatas': calBoard_deal(),
-        'strbDatas': storeBoard_deal(),
-        'ctrlbDatas_1': controlBoard_deal_1(),
-        'ctrlbDatas_2': controlBoard_deal_2()
-    }
-    # print(index_data['strbDatas'])
-    # print(index_data['ctrlbDatas_1'])
-    # print(index_data['ctrlbDatas_2'])
-    return jsonify(index_data)
+    if not current_user.is_authenticated:
+        return redirect(url_for('auth.login'))
+    else:
+        index_data = {
+            'calbDatas': calBoard_deal(),
+            'strbDatas': storeBoard_deal(),
+            'ctrlbDatas_1': controlBoard_deal_1(),
+            'ctrlbDatas_2': controlBoard_deal_2()
+        }
+        # print(index_data['strbDatas'])
+        # print(index_data['ctrlbDatas_1'])
+        # print(index_data['ctrlbDatas_2'])
+        return jsonify(index_data)
 
 
 @main.route('/')
@@ -219,6 +223,7 @@ def addTask_deal():
         taskType = request.form.get('taskType')
         taskAttr = request.form.get('taskAttr')
         taskData = request.files.get('taskData')
+        print('taskType: %s, taskAttr: %s, taskData: %s' % (taskType, taskAttr, taskData))
         # 往数据库添加本次任务的数据
         if taskType and taskAttr:
             if taskData is None:
@@ -229,6 +234,7 @@ def addTask_deal():
                         user_taskTemp=current_user)
             # 如果数据文件非空而且文件扩展名合法
             if taskData and allowed_file(taskData.filename):
+                print('Deal with and save uploaded file!')
                 taskData_file_name = deal_filename(taskData.filename)
                 # 此时修改 task 的 data_file_name 属性，使其是修改后的文件名
                     # 修改后的文件名: 用户名 + '_' + 去掉非 ASCII 字符(如中文)的文件名 + '_' + 时间戳
@@ -240,31 +246,63 @@ def addTask_deal():
                 taskData_file_url = url_for('main.uploads_taskdatas', filename=taskData_file_name)
             db.session.add(taskTemp)
             db.session.commit()
-        # 从数据库取出该用户所有任务数据
-        tasks = TaskTemp.query.filter_by(user_taskTemp=current_user).all()
-        for t in tasks:
-            task_dict = {}
-            # 任务名称
-                # 格式： 任务类型 + '_' +  任务属性 + '_' + 任务数据文件名
-                # 而任务数据文件名: 用户名 + '_' + 去掉非 ASCII 字符(如中文)的文件名 + '_' + 时间戳
-            taskName = t.type + '_' + t.attr + ' ' +\
-                        t.data_file_name
-            # taskName = t.user_taskTemp.username + '_' + t.type + '_' + \
-            #            t.timestamp.strftime('%Y_%m_%d_%H_%M_%S')S
-            task_dict['taskName'] = taskName
-            task_dict['taskAttr'] = t.attr
-            if len(t.data_file_name) != 0:
-                task_dict['taskDataURL'] = url_for('main.uploads_taskdatas', filename=t.data_file_name)
-            else:
-                task_dict['taskDataURL'] = ''
-            taskPools.append(task_dict)
+
+        add_task_to_taskPool, add_task_to_Task = query_construct_taskTemp()
         fileinput_response['status'] = 0
-        fileinput_response['tasks'] = taskPools
+        fileinput_response['tasks'] = add_task_to_taskPool
         return jsonify(fileinput_response)
     except KeyError as keyerr:
         print('KeyError: %s' % keyerr)
         fileinput_response['status'] = -1
         return jsonify(fileinput_response)
+
+
+def query_construct_taskTemp():
+    # 获取数据文件的存储位置时，需要使用当前应用实例 app 来创建
+    # 应用上下文，所以需要获取 current_app 代理对象背后潜在的被代理的当前应用实例 app，
+    # 可以用 _get_current_object() 方法获取 app。
+    app = current_app._get_current_object()
+
+    add_task_to_Task = []   # 用于提交到 task 模型
+    add_task_to_taskPool = []   # 用于显示到任务池
+    # 从 TaskTemp 模型取出该用户的所有任务数据
+    taskTemps = TaskTemp.query.filter_by(user_taskTemp=current_user).all()
+    print('Query TaskTemp get %d tasks' % len(taskTemps))
+    for ttmp in taskTemps:
+        task_elem = {
+            'id': ttmp.id,
+            'type': ttmp.type,
+            'attr': ttmp.attr,
+            'data_file_name': ttmp.data_file_name,
+            'user_task': ttmp.user_taskTemp,
+            'timestamp': ttmp.timestamp
+        }
+        add_task_to_Task.append(task_elem)
+        # 将 TaskTemp 模型中的任务添加到任务队列，并通过 socket_client 处理发送给主控板
+        # 任务名称
+        # 格式： 任务类型 + '_' +  任务属性 + '_' + 任务数据文件名
+        # 而任务数据文件名: 用户名 + '_' + 去掉非 ASCII 字符(如中文)的文件名 + '_' + 时间戳
+        taskName = ttmp.type + '_' + ttmp.attr + ' ' + \
+                   ttmp.data_file_name
+        # 获取任务数据文件的存储位置
+        if ttmp.data_file_name != '':
+            taskDataFilePath = os.path.join(app.config['UPLOADED_TASKDATAS_DEST'], ttmp.data_file_name)
+            taskSize = os.path.getsize(taskDataFilePath) >> 10  # 大小以 kb 为单位
+        else:
+            taskSize = 0
+        taskData_file_url = ''
+        if ttmp.data_file_name != '':
+            # 为文件生成 url 地址
+            taskData_file_url = url_for('main.uploads_taskdatas', filename=ttmp.data_file_name)
+        task_pool_elem = {
+            'taskName': taskName,
+            'taskType': ttmp.type,
+            'taskAttr': ttmp.attr,
+            'taskSize': taskSize,
+            'taskDataURL': taskData_file_url
+        }
+        add_task_to_taskPool.append(task_pool_elem)
+    return add_task_to_taskPool, add_task_to_Task
 
 
 @main.route('/deploy-task', methods=['GET', 'POST'])
@@ -280,49 +318,27 @@ def deploy_task():
         # flash(u'欢迎！')
         addTaskForm = AddtaskForm()
         submitTaskForm = SubmitTaskForm()
+        add_task_to_taskPool, add_task_to_Task = query_construct_taskTemp()
         if submitTaskForm.validate_on_submit():
             print(u'收到了提交的任务表单!')
             # print(submitTaskForm.flag.render_kw.get('value'))
             # print(request.form)
             if request.form.get('flag') == '1':
                 print(u'表单验证通过!')
-                # 构造任务队列，传递给 socket_client 程序处理
-                task_queue = []
-                # 用户点击任务提交按钮后，需要将 TaskTemp 模型中的数据转移到 Task 模型中，
-                # 任务执行状态默认为等待，同时将新提交的任务下发给主控板，删除 TaskTemp 中的数据。
-                    # 从 TaskTemp 模型取出该用户的所有任务数据
-                taskTemps = TaskTemp.query.filter_by(user_taskTemp=current_user).all()
-                for ttmp in taskTemps:
 
-                    # 将 TaskTemp 模型中的任务添加到任务队列，并通过 socket_client 处理发送给主控板
-                        # 任务名称
-                            # 格式： 任务类型 + '_' +  任务属性 + '_' + 任务数据文件名
-                            # 而任务数据文件名: 用户名 + '_' + 去掉非 ASCII 字符(如中文)的文件名 + '_' + 时间戳
-                    taskName = ttmp.type + '_' + ttmp.attr + ' ' + \
-                               ttmp.data_file_name
-                        # 获取任务数据文件的存储位置
-                    if(ttmp.data_file_name != ''):
-                        taskDataFilePath = os.path.join(app.config['UPLOADED_TASKDATAS_DEST'], ttmp.data_file_name)
-                        taskSize = os.path.getsize(taskDataFilePath) >> 10      # 大小以 kb 为单位
-                    else:
-                        taskSize = 0
-                    task_elem = {
-                        'taskName': taskName,
-                        'taskType': ttmp.type,
-                        'taskAttr': ttmp.attr,
-                        'taskSize': taskSize
-                    }
-                    task_queue.append(task_elem)
-
-                        # 任务的执行状态默认为等待
-                    task = Task(type=ttmp.type,
-                                attr=ttmp.attr,
-                                data_file_name=ttmp.data_file_name,
-                                user_task=ttmp.user_taskTemp,
-                                timestamp=ttmp.timestamp)
+                for add_task in add_task_to_Task:
+                    # 任务的执行状态默认为等待
+                    task = Task(type=add_task.get('type'),
+                                attr=add_task.get('attr'),
+                                data_file_name=add_task.get('data_file_name'),
+                                user_task=add_task.get('user_task'),
+                                timestamp=add_task.get('timestamp'))
+                    # 查询 TaskTemp 中对应的任务
+                    ttmp = TaskTemp.query.filter_by(id=add_task.get('id')).first()
                     try:
                         db.session.add(task)
-                        db.session.delete(ttmp)
+                        if ttmp is not None:
+                            db.session.delete(ttmp)
                         db.session.commit()
                     except Exception as err:
                         print('move TaskTemp datas to Task occurs error: %s' % err)
@@ -330,7 +346,7 @@ def deploy_task():
                         flash(u'任务提交失败!')
 
                 # 调用处理函数改变 socket_client 中 cmd_search 中的 parseDeployTaskData 对应的数据
-                parseTaskQueue(task_queue)
+                parseTaskQueue(add_task_to_taskPool)
                 # 通过 socket 与主控板通信，进行任务注册及注册状态处理
                 updateModel(parseDeployTaskData, user_email=current_user.email)
 
@@ -339,7 +355,8 @@ def deploy_task():
                 return redirect(url_for('main.issue_task'))
         return render_template('deploy_task.html',
                                addTaskForm=addTaskForm,
-                               submitTaskForm=submitTaskForm)
+                               submitTaskForm=submitTaskForm,
+                               add_task_to_taskPool=add_task_to_taskPool)
 
 
 @main.route('/submitTask_deal', methods=['POST'])
@@ -410,8 +427,17 @@ def issue_task():
         return redirect(url_for('auth.login'))
     else:
         alive_tasks_queue, executable_len, running_len = query_construct_aliveTasks(current_user)
+
+        # 从 CalBoard 模型中取出 dsp 的状态
+        calBoards = CalBoard.query.order_by(CalBoard.name).all()
+        core_status = []
+        for calb in calBoards:
+            core_status.append(calb.dsp1_isIdle())
+            core_status.append(calb.dsp2_isIdle())
+
         return render_template('issue_task.html', alive_tasks_queue=alive_tasks_queue,
-                               Task_Status=Task_Status, executable_len=executable_len, running_len=running_len)
+                               Task_Status=Task_Status, executable_len=executable_len, running_len=running_len,
+                               core_status=core_status)
 
 
 @main.route('/issueTask_deal', methods=['POST'])
@@ -451,7 +477,7 @@ def issueTask_deal():
                 else:
                     taskSize = 0
                 issue_task = {
-                    'taskId': task.task_id,
+                    'taskId': chr(task.task_id),
                     'taskSize': taskSize,
                     'taskDataPath': taskDataPath,
                 }
@@ -464,7 +490,7 @@ def issueTask_deal():
                     print('Modify task: %s status occurs error: %s' % (taskId, err))
                     db.session.rollback()
                     return jsonify({'status': -1})
-
+    print('issueTask_deal: %s' % issue_task_queue)
     # 调用处理函数改变 socket_client 中 cmd_search 中 parseIssueTaskData 对应的数据
     parseIssueTaskQueue(issue_task_queue)
     # 通过 socket 与主控板通信，进行任务下发及结果接收
@@ -481,18 +507,103 @@ def issueTask_deal():
     return jsonify(alive_tasks_info)
 
 
+def query_completed_tasks():
+    # 首先从 User 模型中获取当前用户
+    user = User.query.filter_by(email=current_user.email).first()
+    # 从 Task 模型中找出当前用户所有已经执行完毕的任务
+    tasks = Task.query.filter_by(user_task=user).order_by(Task.task_id.desc()).all()
+    completed_tasks = []
+    for task in tasks:
+        if task.task_status == Task_Status.DONE:
+            completed_tasks.append(task)
+    completed_task_des_queue = []
+    for completed_task in completed_tasks:
+        # 任务名称
+        # 格式： 任务类型 + '_' +  任务属性 + '_' + 任务数据文件名
+        # 而任务数据文件名: 用户名 + '_' + 去掉非 ASCII 字符(如中文)的文件名 + '_' + 时间戳
+        taskName = completed_task.type + '_' + completed_task.attr + ' ' + \
+                   completed_task.data_file_name
+        taskId = completed_task.task_id
+        des = str(taskId) + '  : ' + taskName
+        completed_task_des_queue.append((taskId, des))
+    print('all completed tasks: %s' % completed_task_des_queue)
+    return completed_task_des_queue
+
 
 @main.route('/view-results')
 def view_results():
     if not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
     else:
-        return render_template('view_results.html')
+        completed_task_des_queue = query_completed_tasks()
+        viewResultsForm = ViewResultsForm(completed_task_des_queue=completed_task_des_queue,
+                                          user_email=current_user.email)
+        return render_template('view_results.html', viewResultsForm=viewResultsForm,
+                               completed_tasks_len=len(completed_task_des_queue))
+
+
+@main.route('/viewResults_deal', methods=['POST'])
+def viewResutls_deal():
+    task_id = request.values.get('task_id')
+    task_id = int(task_id)
+    print('Get task_id: %s in viewResults_deal function' % task_id)
+    # 获取 task_id 指定的任务的原始数据文件和处理后的数据文件的 url，以便在用户界面展示
+        # 从 Task 模型中找到由 taskId 指定的任务
+    task = Task.query.filter_by(task_id=task_id).first()
+    if task is not None and task.task_status == Task_Status.DONE:
+        # 获取原始数据文件的文件名
+        data_file_name = task.data_file_name
+        # 生成原始数据文件的 url
+        data_file_url = url_for('main.uploads_taskdatas', filename=data_file_name)
+        print('origin_file_url: %s' % data_file_url)
+        # 获取处理后的数据文件的文件名
+        data_treated_file_name = task.data_treated_file_name
+        # 生成处理后数据文件的 url
+        data_treated_file_url = url_for('main.uploads_taskdatas', filename=data_treated_file_name)
+        print('treated_file_url: %s' % data_treated_file_url)
+        data_file_urls = {
+            'file': data_file_url,
+            'treated_file': data_treated_file_url,
+            'status': 0
+        }
+        return jsonify(data_file_urls)
+    else:
+        return jsonify({'status': -1})
 
 
 @main.route('/system-log')
-def syslog():
+def system_log():
     if not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
     else:
-        return render_template('syslog.html')
+        # 如果当前用户是管理员角色，则从 Task 模型中取出全部的任务(包括所有用户的)
+        if current_user.is_Administrator():
+            tasks = Task.query.order_by(Task.timestamp.desc()).all()
+        # 否则只取出当前用户的所有任务
+        else:
+            tasks = Task.query.filter_by(user_task=current_user).order_by(Task.timestamp.desc()).all()
+        # 构造系统日志队列
+        system_log_queue = []
+        for task in tasks:
+            # 任务名称
+            # 格式： 任务类型 + '_' +  任务属性 + '_' + 任务数据文件名
+            # 而任务数据文件名: 用户名 + '_' + 去掉非 ASCII 字符(如中文)的文件名 + '_' + 时间戳
+            taskName = task.type + '_' + task.attr + ' ' + \
+                       task.data_file_name
+            taskStatus = u'等待'
+            if task.task_status == Task_Status.WAITING:
+                taskStatus = u'等待'
+            elif task.task_status == Task_Status.EXECUTABLE:
+                taskStatus = u'可执行'
+            elif task.task_status == Task_Status.RUNNING:
+                taskStatus = u'正在执行'
+            elif task.task_status == Task_Status.DONE:
+                taskStatus = u'执行完毕'
+            log = {
+                'time': task.timestamp.strftime('%Y_%m_%d  %H:%M:%S'),
+                'user': task.user_task.username,
+                'task': taskName,
+                'taskStatus': taskStatus
+            }
+            system_log_queue.append(log)
+        return render_template('system_log.html', system_log_queue=system_log_queue, Task_Status=Task_Status)

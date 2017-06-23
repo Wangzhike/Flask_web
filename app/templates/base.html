@@ -62,7 +62,7 @@
                         (url_for('main.deploy_task'), 'deploy_task', '任务部署', 'glyphicon glyphicon-pencil'),
                         (url_for('main.issue_task'), 'issue_task', '任务下发', 'glyphicon glyphicon-send'),
                         (url_for('main.view_results'), 'view_results', '结果查看', 'glyphicon glyphicon-zoom-in'),
-                        (url_for('main.syslog'), 'syslog', '系统日志', 'glyphicon glyphicon-tags')] %}
+                        (url_for('main.system_log'), 'system_log', '系统日志', 'glyphicon glyphicon-tags')] %}
                         {% set active_page = active_page|default('monitoring') %}
                         {% for href, id, caption, icon_class in navigation_bar %}
                             <li {% if active_page == id %} class="active" {% endif %}>

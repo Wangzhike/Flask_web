@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
 
 {% set active_page = 'view_results' %}
 {% block title %}Display Web App - 结果查看{% endblock %}
@@ -7,7 +8,70 @@
     结果查看
 {% endblock page_header %}
 {% block page_content %}
-<div class="page-header">
-    <p>Hello, this is a simple project to display.</p>
-</div>
-{% endblock %}
+    <div class="row">
+        <div class="col-md-5 col-sm-6 col-xs-7 col-md-offset-3 col-sm-offset-2 col-xs-offset-1">
+            {{ wtf.quick_form(viewResultsForm) }}
+        </div>
+        <div class="col-md-2 col-sm-2 col-xs-3">
+            <button id= "view_results"type="button" class="btn btn-success" {% if completed_tasks_len == 0 %}disabled="disabled"{% endif %}
+                    style="margin-top: 25px;">查看结果</button>
+        </div>
+    </div>
+    <div id="results_show" class="row" style="margin-top: 15px; display: none;">
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <div class="panel-title">
+                        原始数据
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <img id="origin_file" src="" class="img-responsive">
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <div class="panel-title">
+                        处理结果
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <img id="treated_file" src="" class="img-responsive">
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock page_content %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#view_results').bind('click', function () {
+                //获取当前任务选择下拉列表的值
+                seleted_completed_task = $('form select[id=completedTasks]')[0];
+                console.log(seleted_completed_task.value);
+                var task_id = seleted_completed_task.value;
+                $.ajax({
+                    url: $SCRIPT_ROOT + '/viewResults_deal',
+                    data: {'task_id': task_id},
+                    type: 'POST',
+                    dataType: 'json',
+                }).done(function (data) {
+                    if(data.status === 0) {
+                        //显示原始数据和处理后的数据
+                        file_url = data.file;
+                        treated_file_url = data.treated_file;
+                        $('#results_show')[0].style.display = 'block';
+                        $('img[id=origin_file]')[0].outerHTML = '<img id="origin_file" src="' + file_url + '" class="img-responsive">';
+                        $('img[id=treated_file]')[0].outerHTML = '<img id="treated_file" src="' + treated_file_url + '" class="img-responsive">';
+                    } else {
+                        alert('查看任务执行结果失败!')
+                    }
+                })
+            })
+        })
+    </script>
+{% endblock scripts %}

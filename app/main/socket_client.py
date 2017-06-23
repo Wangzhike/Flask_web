@@ -9,6 +9,7 @@ from datetime import datetime
 import hashlib
 import os
 import base64
+import time
 
 # socket 接收数据的最大长度
 SOCKET_SIZE = 1024
@@ -36,8 +37,8 @@ def parseCalBoardData(data, user_email=None):
             cal_list = []
             for i in range(0, 8):
                 cal = {
-                    'dsp1_status': ( ((int(dsp_stat, base=2) & (0x8000 >> i))) >> (15-i) ) & 0x01,
-                    'dsp2_status': ( (int(dsp_stat, base=2) & (0x4000 >> (2*i))) >> (15-2*i) ) & 0x01,
+                    'dsp1_status': ( ((int(dsp_stat, base=2) & (0x8000 >> (2*i)))) >> (15-2*i) ) & 0x01,
+                    'dsp2_status': ( (int(dsp_stat, base=2) & (0x4000 >> (2*i))) >> (14-2*i) ) & 0x01,
                     'fpga_extra': int(fpga_extras.split(' ')[i])
                 }
                 print(cal)
@@ -134,7 +135,16 @@ def parseDeployTaskData(data, user_email):
         # 丢弃数据结尾的 '\0'
         data = data.rstrip('\0')
         task_id, task_hwResource= data.split(' ', 1)
-        # print('task_id=%s, task_hwResource=%s' % (task_id, task_hwResource))
+
+        task_hwResource_list = task_hwResource.split(' ')
+        task_hwResource = ''
+        for i in range(len(task_hwResource_list)):
+            task_hwResource += str(ord(task_hwResource_list[i]))
+            if i != len(task_hwResource_list) - 1:
+                task_hwResource += ' '
+        task_id = ord(task_id)
+
+        print('task_id=%s, task_hwResource=%s' % (task_id, task_hwResource))
 
         # 首先从 User 模型中获取当前用户
         user = User.query.filter_by(email=user_email).first()
@@ -152,7 +162,7 @@ def parseDeployTaskData(data, user_email):
                     break
             if unreg_task is not None:
                 # 填充返回的 task_id
-                unreg_task.task_id = int(task_id)
+                unreg_task.task_id = task_id
                 # 更改任务的状态为可执行
                 unreg_task.task_status = Task_Status.EXECUTABLE
                 # 填充返回的分配给任务的硬件资源
@@ -201,7 +211,7 @@ def parseIssueTaskData(data, user_email=None):
         data = data.rstrip('\0')
         task_id, treated_file = data.split(' ', 1)
         # 从 Task 模型中找到由 task_id 指定的任务
-        task_id = int(task_id)
+        task_id = ord(task_id)
         print('Received task: %s returned treated file data' % task_id)
         # 将数据文件(图片)字符串先转换为 bytes 字节流，然后利用 base64 解码为原图像对应的二进制数据
         treated_file = base64.b64decode(treated_file.encode('utf-8'))
@@ -318,7 +328,6 @@ def async_updateModel(app, parseDatafunc, user_email):
             cmd += str(attr)
         cmd += ' '
             # 用户 id hashlib 映射
-        # cmd += hashlib.md5('956318206@qq.com').hexdigest()[0:10] + '\n\0 '
         cmd += hashlib.md5(user_email).hexdigest()[0:10] + '\n\0 '
             # 任务号
         cmd += chr(cmd_search[parseDatafunc].get('taskCmd')) + ' '  # 利用 chr() 将数字转换为该数字对应的 ascii 码
@@ -327,7 +336,7 @@ def async_updateModel(app, parseDatafunc, user_email):
         sizes = cmd_search[parseDatafunc].get('taskSize')
         # 任务数据文件路径
         paths = cmd_search[parseDatafunc].get('taskDataPath')
-        print(sizes)
+        # print(sizes)
         for i in range(len(sizes)):
             cmd += '{:0>5}'.format(sizes[i])
             # 任务下发命令: 5，带有数据文件路径，如果对应的数据文件路径不为空，
@@ -338,16 +347,23 @@ def async_updateModel(app, parseDatafunc, user_email):
                 with open(paths[i], 'rb') as f:
                     for data in f:
                         file += data
+
+                # 将编码后的数据文件写入到本地文件
+                img_data_txt = os.path.join(current_app.config['UPLOADED_TASKDATAS_DEST'], 'img_data_' + str(i) + '.txt')
+                with open(img_data_txt, 'wb') as f:
+                    f.write(base64.b64encode(file).encode('utf-8'))
+
                 # 将数据文件(图片)二进制数据先用 base64 编码为 bytes 字节流，然后通过解码为 字符串
                 cmd += ' ' + base64.b64encode(file).decode('utf-8')
             if i != len(sizes) - 1:
                 cmd += ' ' + chr(cmd_search[parseDatafunc].get('taskCmd')) + ' '
-        # if len(sizes) != 0:
-        #     for size in sizes[:-1]:
-        #         cmd += '{:0>5}'.format(size) + ' ' + chr(cmd_search[parseDatafunc].get('taskCmd')) + ' '
-        #     cmd += '{:0>5}'.format(sizes[-1])
             # 结束标志 '\0'
         cmd += '\0'
+            # socket 数据发送完毕标志 '##########' (10)
+        cmd_over_flag = ''
+        for i in range(10):
+            cmd_over_flag += '#'
+        # cmd += cmd_over_flag
 
         # print('Cmd: %r' % cmd)
 
@@ -355,23 +371,83 @@ def async_updateModel(app, parseDatafunc, user_email):
             s.connect((server_ip, server_port))
             # 接收欢迎信息
             recv = s.recv(SOCKET_SIZE).decode('utf-8')
-            # print(recv)
+            print(recv)
 
-            # 发送查询计算板数据命令
-            s.send(cmd.encode('utf-8'))
+            # 以 1kb 大小为分割，将通信命令切片
+            cmd_len = len(cmd)
+            cmd_body_len = cmd_len // SOCKET_SIZE
+            cmd_tail_size = cmd_len % SOCKET_SIZE
+            print('Send cmd data have %d kb and %d bytes tail' % (cmd_body_len, cmd_tail_size))
+                # 将通信命令写入到本地文件
+            cmd_out_txt = os.path.join(current_app.config['UPLOADED_TASKDATAS_DEST'], 'cmd_out.txt')
+            with open(cmd_out_txt, 'wb') as f:
+                f.write(cmd)
+
+            try:
+                # 通信命令断点续传发送
+                    # 命令发送游标
+                cmd_index = 0
+                    # 1. 发送通信命令主题部分
+                for i in range(cmd_body_len):
+                        # 通过 once_send_size 记录在发送 1kb 数据的过程中当前已发送的数据长度
+                    once_send_size = 0
+                        # 当本次已发送数据的长度小于 1kb 时，继续发送余下的数据
+                    while once_send_size < SOCKET_SIZE:
+                        per_send_size = s.send(cmd[cmd_index+once_send_size: cmd_index+SOCKET_SIZE-once_send_size].encode('utf-8'))
+                        # 更新已发送数据的长度
+                        once_send_size += per_send_size
+                        # 本次数据发送完毕，更新命令发送游标使其指向下个 1kb 数据的起始位置
+                    cmd_index += SOCKET_SIZE
+                    # 2. 发送通信命令的不大于 1kb 的结尾部分
+                once_send_size = 0
+                while once_send_size < cmd_tail_size:
+                    per_send_size = s.send(cmd[cmd_index+once_send_size: cmd_index+cmd_tail_size-once_send_size].encode('utf-8'))
+                    once_send_size += per_send_size
+                cmd_index += once_send_size
+                # 3. 休眠 100ms
+                time.sleep(0.1)
+                # 4. 发送结束标志
+                s.send(cmd_over_flag.encode('utf-8'))
+                # 5. 休眠 5ms
+                time.sleep(0.005)
+
+            except Exception as err:
+                print('Send data to server occurs error: %s' % err)
+            print('send socket data done!')
+
             for i in range(taskNum):
                 data = ''
-                # 读取返回的计算板数据
+                # 读取返回的主控板数据
                 while True:
-                    recv = s.recv(SOCKET_SIZE).decode('utf-8')
-                    data += recv
-                    # 接收完毕时 recv 的长度小于 SOCKET_SIZE
-                    if len(recv) < SOCKET_SIZE:
-                        print('Socket Receive file: Reach the end of file.')
+                    try:
+                        recv = s.recv(SOCKET_SIZE).decode('utf-8')
+                    except Exception as err:
+                        print('Receive data per 1kb occurs error: %s' % err)
+                    print('%d Recv: %r' % (i, recv))
+                    # 检测当前接收到的数据是否为文件传输完毕标志: '##########' (10)
+                    if recv == cmd_over_flag or recv.find(cmd_over_flag) != -1:
+                        print('Socket Receive %d Over!' % i)
                         break
+                    else:
+                        data += recv
+
+                    # if recv != cmd_over_flag:
+                    #     data += recv
+                    # else:
+                    #     print('Socket Receive %d Over!' % i)
+                    #     break
+                    # print('Recv of len %s:  %s' % (len(recv), recv))
+                    print('Recv of len %s' % len(recv))
+
                 # len(data) != 0，表示连接主控板服务器成功，可以更新查询的数据
                 if len(data) != 0:
-                    # print('%r' % data)
+                    print('Received Data done!')
+                    # 将接收到数据写入到本地文件
+                    recv_from_data_path = os.path.join(current_app.config['UPLOADED_TASKDATAS_DEST'],
+                                                       'recv_from_data_' + str(i) + '.txt')
+                    with open(recv_from_data_path, 'wt') as f:
+                        f.write(data)
+                    # 解析接收到数据
                     parseDatafunc(data, user_email=user_email)
                 else:
                     print('Socket recevie data is None.')

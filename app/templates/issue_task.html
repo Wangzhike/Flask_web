@@ -88,6 +88,9 @@
     //chart-topy
         //1. 基于准备好的dom，初始化echarts实例
         var chart_topo = echarts.init($('#chart-topo')[0]);
+        //取得当前16个 DSP core 的状态
+        var dsp_status = {{ core_status|tojson }};
+        console.log('dsp_status: ' + dsp_status);
         //将当前图表根据宽和高分别分为28份和11份，方便布局和定位。
         //取得当前图表的宽和高，计算得到单位宽和单位高。
         //var chrt_w = $('#chart-topo')[0].clientWidth;
@@ -104,7 +107,7 @@
         var dsp_core2_y = 1.6;
         var data = [{
             name: 'PowerPC',
-            idle: true,
+            idle: false,
             x: 14,
             y: 9,
             id: 'PowerPC',
@@ -125,17 +128,17 @@
             color: '#fa827d',
         }, {
             name: 'core1',
-            idle: true,
+            idle: dsp_status[0],
             x: 3,
             y: dsp_core1_y,
-            id: 1,
+            id: 0,
             color: '#fa827d',
         }, {
             name: 'core2',
-            idle: true,
+            idle: dsp_status[1],
             x: 3,
             y: dsp_core2_y,
-            id: 2,
+            id: 1,
             color: '#fa827d',
         }];
         var line = [{
@@ -265,18 +268,18 @@
             };
             var core1 = {
                 name: 'core1',
-                idle: true,
+                idle: dsp_status[i*2],
                 x: origin_x + 3 * i,
                 y: dsp_core1_y,
-                id: 1 + 2*i,
+                id: 0 + 2*i,
                 color: '#fa827d',
             };
             var core2 = {
                 name: 'core2',
-                idle: true,
+                idle: dsp_status[i*2+1],
                 x: origin_x + 3 * i,
                 y: dsp_core2_y,
-                id: 2 + 2*i,
+                id: 1 + 2*i,
                 color: '#fa827d',
             };
             var dsp2bus = {

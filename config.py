@@ -26,16 +26,16 @@ class Config(object):
     # 系统管理员
     FLASKY_ADMIN = os.environ.get('FLASKY_ADMIN')
     # 主控板 IP 地址
-    MAINBOARD_IP =  '127.0.0.1' # '169.254.162.5' #'127.0.0.1' # '169.254.40.216' # '127.0.0.1' # '10.170.9.224'
+    MAINBOARD_IP =  '10.170.40.95' #'127.0.0.1'
     # 主控板 端口
-    MAINBOARD_PORT = 9999 # 3333 # 9999 # 3333 #9999 # 3333 # 9999 # 3333
+    MAINBOARD_PORT = 3333 #9999
     # 任务数据文件的存储地址
     UPLOADED_TASKDATAS_DEST = os.path.join(os.getcwd(), 'taskDatas')
     # 任务数据文件的扩展名
     ALLOWED_TASKDATAS_EXTENSIONS = set(['txt', 'json', 'xml', 'xls', 'xlsx',
                                         'jpg', 'gif', 'png', 'bmp'])
     # 任务数据文件的大小最大值
-    MAX_TASKDATAS_LENGTH = 16 * 1024 * 1024     # 16MB
+    MAX_TASKDATAS_LENGTH = 100 * 1024 * 1024     # 100MB
 
     @staticmethod
     def init_app(app):
