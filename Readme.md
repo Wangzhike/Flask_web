@@ -6,25 +6,25 @@
 
 ### 1.1 实时监控
 
-![实时监控1](/Users/qiuyu/Linux/python/Flask_web/实时监控1.png)
+![实时监控1](/Users/qiuyu/Linux/python/Flask_web/界面截图/实时监控1.png)
 
-![实时监控2](/Users/qiuyu/Linux/python/Flask_web/实时监控2.png)
+![实时监控2](/Users/qiuyu/Linux/python/Flask_web/界面截图/实时监控2.png)
 
 ### 1.2 任务部署
 
-![任务部署](/Users/qiuyu/Linux/python/Flask_web/任务部署.png)
+![任务部署](/Users/qiuyu/Linux/python/Flask_web/界面截图/任务部署.png)
 
 ### 1.3 任务下发
 
-![任务下发](/Users/qiuyu/Linux/python/Flask_web/任务下发.png)
+![任务下发](/Users/qiuyu/Linux/python/Flask_web/界面截图/任务下发.png)
 
 ### 1.4 结果查看
 
-![结果查看](/Users/qiuyu/Linux/python/Flask_web/结果查看.png)
+![结果查看](/Users/qiuyu/Linux/python/Flask_web/界面截图/结果查看.png)
 
 ### 1.5 系统日志
 
-![系统日志](/Users/qiuyu/Linux/python/Flask_web/系统日志.png)
+![系统日志](/Users/qiuyu/Linux/python/Flask_web/界面截图/系统日志.png)
 
 ## 2. 界面 JS 插件
 

@@ -19,6 +19,7 @@ def parseCalBoardData(data, user_email=None):
     # len(data) != 0，表示连接主控板服务器成功，可以更新计算版数据
     if len(data) != 0:
         # 丢弃数据结尾的 '\0'
+        data = data.rstrip('#')
         data = data.rstrip('\0')
         idle_num, dsp_stat, fpga_extras = data.split(' ', 2)
         print('idle_num: %s' % int(idle_num))
@@ -66,6 +67,7 @@ def parseStoreBoardData(data, user_email=None):
     # len(data) != 0，表示连接主控板服务器成功，可以更新存储版数据
     if len(data) != 0:
         # 丢弃数据结尾的 '\0'
+        data = data.rstrip('#')
         data = data.rstrip('\0')
         store_mem = data.split(' ', 3)
         storeBoards = StoreBoard.query.order_by(StoreBoard.name).all()
@@ -94,6 +96,7 @@ def parseControlBoardData(data, user_email=None):
     # len(data) != 0，表示连接主控板服务器成功，可以更新控制板数据
     if len(data) != 0:
         # 丢弃数据结尾的 '\0'
+        data = data.rstrip('#')
         data = data.rstrip('\0')
         cpu_user, cpu_system, cpu_idle, timestamp = data.split(' ', 3)
         # 按照时间戳升序方式将控制板数据排序，也就是说最后一位数据时间最新
@@ -133,6 +136,7 @@ def parseDeployTaskData(data, user_email):
     # len(data) != 0，表示连接主控板服务器成功，可以更新任务池数据
     if len(data) != 0:
         # 丢弃数据结尾的 '\0'
+        data = data.rstrip('#')
         data = data.rstrip('\0')
         task_id, task_hwResource= data.split(' ', 1)
 
@@ -208,13 +212,27 @@ def parseIssueTaskData(data, user_email=None):
     # 以及接收处理后的数据文件
     if len(data) != 0:
         # 丢弃数据结尾的 '\0'
+        data = data.rstrip('#')
         data = data.rstrip('\0')
         task_id, treated_file = data.split(' ', 1)
         # 从 Task 模型中找到由 task_id 指定的任务
         task_id = ord(task_id)
         print('Received task: %s returned treated file data' % task_id)
         # 将数据文件(图片)字符串先转换为 bytes 字节流，然后利用 base64 解码为原图像对应的二进制数据
-        treated_file = base64.b64decode(treated_file.encode('utf-8'))
+            # 处理 base64 解码 Incorrect padding 错误
+        treated_file_encode = treated_file.encode('utf-8')
+        missing_padding = 4 - len(treated_file_encode) % 4
+        if missing_padding:
+                treated_file_encode += b'=' * missing_padding
+        try:
+            treated_file = base64.decodestring(treated_file_encode)
+        except Exception as err:
+            print('base64 decode image data occurs error: %s' % err)
+            pass
+
+        # 将数据文件(图片)字符串先转换为 bytes 字节流，然后利用 base64 解码为原图像对应的二进制数据
+        # treated_file = base64.b64decode(treated_file.encode('utf-8'))
+
         task = Task.query.filter_by(task_id=task_id).first()
         if task is not None:
             # 将其状态标记为执行完毕
@@ -405,7 +423,7 @@ def async_updateModel(app, parseDatafunc, user_email):
                     once_send_size += per_send_size
                 cmd_index += once_send_size
                 # 3. 休眠 100ms
-                time.sleep(0.1)
+                time.sleep(5)
                 # 4. 发送结束标志
                 s.send(cmd_over_flag.encode('utf-8'))
                 # 5. 休眠 5ms
@@ -420,7 +438,7 @@ def async_updateModel(app, parseDatafunc, user_email):
                 # 读取返回的主控板数据
                 while True:
                     try:
-                        recv = s.recv(SOCKET_SIZE).decode('utf-8')
+                        recv = s.recv(SOCKET_SIZE).decode('utf-8', errors='ignore')
                     except Exception as err:
                         print('Receive data per 1kb occurs error: %s' % err)
                     print('%d Recv: %r' % (i, recv))

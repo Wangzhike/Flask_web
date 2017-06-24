@@ -131,14 +131,14 @@
             idle: dsp_status[0],
             x: 3,
             y: dsp_core1_y,
-            id: 0,
+            id: 1,
             color: '#fa827d',
         }, {
             name: 'core2',
             idle: dsp_status[1],
             x: 3,
             y: dsp_core2_y,
-            id: 1,
+            id: 2,
             color: '#fa827d',
         }];
         var line = [{
@@ -271,7 +271,7 @@
                 idle: dsp_status[i*2],
                 x: origin_x + 3 * i,
                 y: dsp_core1_y,
-                id: 0 + 2*i,
+                id: 1 + 2*i,
                 color: '#fa827d',
             };
             var core2 = {
@@ -279,7 +279,7 @@
                 idle: dsp_status[i*2+1],
                 x: origin_x + 3 * i,
                 y: dsp_core2_y,
-                id: 1 + 2*i,
+                id: 2 + 2*i,
                 color: '#fa827d',
             };
             var dsp2bus = {

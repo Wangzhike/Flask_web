@@ -26,7 +26,7 @@ class Config(object):
     # 系统管理员
     FLASKY_ADMIN = os.environ.get('FLASKY_ADMIN')
     # 主控板 IP 地址
-    MAINBOARD_IP =  '10.170.40.95' #'127.0.0.1'
+    MAINBOARD_IP =  '10.170.7.248' #'127.0.0.1'
     # 主控板 端口
     MAINBOARD_PORT = 3333 #9999
     # 任务数据文件的存储地址
